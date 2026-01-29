@@ -6,11 +6,12 @@ import * as Y from "yjs";
 import * as syncProtocol from "y-protocols/sync";
 import * as awarenessProtocol from "y-protocols/awareness";
 import { encoding, decoding } from "lib0";
+import "dotenv/config";
 
 // 1. CONFIGURATION
 
 const PORT = process.env.PORT || 3000;
-const MONGO_URL = process.env.MONGO_URL;
+const MONGO_URI = process.env.MONGO_URI;
 
 // 2. DB SETUP
 try {
