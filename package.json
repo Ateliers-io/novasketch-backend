@@ -15,7 +15,10 @@
   "packageManager": "pnpm@10.28.2",
   "dependencies": {
     "dotenv": "^17.2.3",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "mongoose": "^9.1.5",
+    "ws": "^8.19.0",
+    "yjs": "^13.6.29"
   },
   "devDependencies": {
     "eslint": "^9.39.2",
