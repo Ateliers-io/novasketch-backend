@@ -1,75 +1,83 @@
-import app from "./app.js";
-
-const express = require("express");
-const http = require("http");
-const WebSocket = require("ws");
-const mongoose = require("mongoose");
-const Y = require("yjs");
-
+import express from "express";
+import http from "http";
+import { WebSocketServer, WebSocket } from "ws";
+import mongoose from "mongoose";
+import * as Y from "yjs";
 
 // 1. CONFIGURATION
-const PORT = 3000;
-const MONGO_URI = "mongodb+srv://kurapatikushalnarasimha95_db_user:yEm04oUnfCLuYD6E@cluster0.sqnkvlt.mongodb.net/?appName=Cluster0"
+const PORT = process.env.PORT || 3000;
+const MONGO_URI = "mongodb+srv://kurapatikushalnarasimha95_db_user:yEm04oUnfCLuYD6E@cluster0.sqnkvlt.mongodb.net/?appName=Cluster0";
 
-// db setup
+// 2. DB SETUP
+try {
+  await mongoose.connect(MONGO_URI);
+  console.log("✅ Connected to MongoDB");
+} catch (err) {
+  console.error("❌ DB Connection Error:", err);
+}
 
-mongoose.connect(MONGO_URI)
-  .then(() => console.log("✅ Connected to MongoDB"))
-  .catch((err) => console.error("❌ DB Connection Error:", err));
-
-// Schema: We store the room ID and the raw binary data of the drawing
+// Schema
 const RoomSchema = new mongoose.Schema({
-  _id: String,      // We use the Room Name as the ID
-  data: Buffer      // The drawing is stored as a binary blob
+  _id: String,
+  data: Buffer
 });
 
 const Room = mongoose.model("Room", RoomSchema);
 
-// server setup with express
+// 3. SERVER SETUP
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocketServer({ server });
 
-// Memory Store: Holds active drawings so we don't hit DB on every stroke
-// Map<RoomID, Y.Doc>
+// Memory Store
 const activeRooms = new Map();
 
 app.get("/", (req, res) => {
-  res.send("🎨 Drawing Backend is Running (JS Mode)");
+  res.send("🎨 Drawing Backend is Running (ESM Mode)");
 });
 
-//  WEBSOCKET LOGIC
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK", uptime: process.uptime() });
+});
+
+// 4. WEBSOCKET LOGIC
 wss.on("connection", async (ws, req) => {
-  // 1. Get Room ID from URL (e.g., ws://localhost:3000/room-1)
+  // Get Room ID
   const roomId = req.url.slice(1) || "default-room";
   console.log(`🔌 New User connected to: ${roomId}`);
 
-  // 2. Initialize Room if not in memory
+  // Initialize Room
   if (!activeRooms.has(roomId)) {
-    console.log(`📂 Loading Room ${roomId} from Disk...`);
+    console.log(`📂 Loading Room ${roomId}...`);
     const doc = new Y.Doc();
     
     // A. Load from MongoDB
-    const existingRoom = await Room.findById(roomId);
-    if (existingRoom && existingRoom.data) {
-        // Apply binary data from DB to the in-memory Doc
+    try {
+      const existingRoom = await Room.findById(roomId);
+      if (existingRoom && existingRoom.data) {
         Y.applyUpdate(doc, new Uint8Array(existingRoom.data));
+      }
+    } catch (e) {
+      console.error("Error loading room:", e);
     }
 
-    // B. Setup Auto-Save (Debounce)
-    // Only save to DB if 2 seconds have passed since the last edit
+    // B. Auto-Save Logic
     let saveTimer = null;
     const saveToDB = () => {
-        if (saveTimer) clearTimeout(saveTimer);
-        saveTimer = setTimeout(async () => {
-            const binaryData = Y.encodeStateAsUpdate(doc);
-            await Room.findByIdAndUpdate(
-                roomId, 
-                { data: Buffer.from(binaryData) }, 
-                { upsert: true }
-            );
-            console.log(`💾 Saved ${roomId} to MongoDB`);
-        }, 2000);
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(async () => {
+        const binaryData = Y.encodeStateAsUpdate(doc);
+        try {
+          await Room.findByIdAndUpdate(
+            roomId, 
+            { data: Buffer.from(binaryData) }, 
+            { upsert: true }
+          );
+          console.log(`💾 Saved ${roomId} to MongoDB`);
+        } catch (e) {
+          console.error("Error saving room:", e);
+        }
+      }, 2000);
     };
 
     doc.on('update', saveToDB);
@@ -78,19 +86,16 @@ wss.on("connection", async (ws, req) => {
 
   const doc = activeRooms.get(roomId);
 
-  // 3. Send Initial State to the new Client to ensure they see the current drawing immediately
+  // Send Initial State
   const initialState = Y.encodeStateAsUpdate(doc);
   ws.send(initialState);
 
-  // 4. Handle Incoming Updates
+  // Handle Updates
   ws.on("message", (message) => {
-    // message is a Buffer. Convert to Uint8Array for Y.js
     const update = new Uint8Array(message);
-    
-    // A. Update the Server's state
     Y.applyUpdate(doc, update);
 
-    // B. Broadcast to everyone else in the room
+    // Broadcast
     wss.clients.forEach(client => {
       if (client !== ws && client.readyState === WebSocket.OPEN) {
         client.send(update);
@@ -99,7 +104,7 @@ wss.on("connection", async (ws, req) => {
   });
 
   ws.on("close", () => {
-    console.log(`❌ User disconnected from ${roomId}`);
+    // Optional cleanup
   });
 });
 
