@@ -6,7 +6,8 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "lint": "eslint src"
   },
   "keywords": [],
   "author": "",
@@ -18,8 +19,6 @@
   },
   "devDependencies": {
     "eslint": "^9.39.2",
-    "nodemon": "^3.1.11",
-    "lint": "eslint src"
-
+    "nodemon": "^3.1.11"
   }
 }
