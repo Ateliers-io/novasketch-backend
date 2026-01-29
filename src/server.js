@@ -51,14 +51,25 @@ wss.on("connection", async (ws, req) => {
     console.log(`📂 Loading Room ${roomId}...`);
     const doc = new Y.Doc();
     
-    // A. Load from MongoDB
+    // A. Load from MongoDB with SELF-HEALING
     try {
       const existingRoom = await Room.findById(roomId);
+      
       if (existingRoom && existingRoom.data) {
-        Y.applyUpdate(doc, new Uint8Array(existingRoom.data));
+        try {
+            // Attempt to load data
+            if (existingRoom.data.length > 0) {
+                Y.applyUpdate(doc, new Uint8Array(existingRoom.data));
+                console.log(`✅ Loaded ${existingRoom.data.length} bytes for ${roomId}`);
+            }
+        } catch (corruptError) {
+            // IF DATA IS CORRUPT: Delete it and start fresh
+            console.error(`⚠️ CORRUPT DATA DETECTED in ${roomId}. Wiping database entry to fix.`);
+            await Room.findByIdAndDelete(roomId);
+        }
       }
     } catch (e) {
-      console.error("Error loading room:", e);
+      console.error("Error accessing MongoDB:", e);
     }
 
     // B. Auto-Save Logic
@@ -112,3 +123,5 @@ wss.on("connection", async (ws, req) => {
 server.listen(PORT, () => {
   console.log(`🚀 Server started on http://localhost:${PORT}`);
 });
+
+// ⚠️ REMOVED THE "DROP DATABASE" LINE HERE. NEVER PUT THAT BACK!

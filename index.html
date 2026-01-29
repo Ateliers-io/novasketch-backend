@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NovaSketch Test Client</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #f0f0f0; }
+        canvas { display: block; background: white; cursor: crosshair; }
+        #status { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; font-family: sans-serif; border-radius: 4px; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div id="status">Connecting...</div>
+    <canvas id="canvas"></canvas>
+
+    <script type="module">
+        import * as Y from 'https://esm.sh/yjs@13';
+        import { WebsocketProvider } from 'https://esm.sh/y-websocket@1';
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const statusDiv = document.getElementById('status');
+
+        // 1. Resize Canvas
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // 2. Connect to YOUR Backend
+        const doc = new Y.Doc();
+        // Connect to "room-1"
+        const wsProvider = new WebsocketProvider('ws://localhost:3000', 'room-2', doc);
+
+        wsProvider.on('status', event => {
+            statusDiv.innerText = event.status === 'connected' ? '🟢 Connected' : '🔴 Disconnected';
+        });
+
+        // 3. Define the Shared Array for strokes
+        // Each stroke is: { color: string, points: [x, y, x, y, ...] }
+        const yStrokes = doc.getArray('strokes');
+
+        // 4. Draw Logic (Observe Changes)
+        yStrokes.observe(event => {
+            // Clear and Redraw everything when data changes (Simple approach)
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            yStrokes.forEach(stroke => {
+                ctx.beginPath();
+                ctx.strokeStyle = stroke.color;
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                
+                const points = stroke.points;
+                if (points.length < 4) return;
+
+                ctx.moveTo(points[0], points[1]);
+                for (let i = 2; i < points.length; i += 2) {
+                    ctx.lineTo(points[i], points[i+1]);
+                }
+                ctx.stroke();
+            });
+        });
+
+        // 5. Input Logic (Mouse/Touch)
+        let isDrawing = false;
+        let currentPath = [];
+
+        const start = (e) => {
+            isDrawing = true;
+            currentPath = [e.clientX, e.clientY];
+        };
+
+        const move = (e) => {
+            if (!isDrawing) return;
+            currentPath.push(e.clientX, e.clientY);
+            
+            // Optional: Draw locally immediately for "instant" feel
+            ctx.lineTo(e.clientX, e.clientY);
+            ctx.stroke();
+        };
+
+        const end = () => {
+            if (!isDrawing) return;
+            isDrawing = false;
+            
+            // Push the finished stroke to the Server (Y.js)
+            if (currentPath.length > 2) {
+                yStrokes.push([{
+                    color: '#' + Math.floor(Math.random()*16777215).toString(16), // Random color
+                    points: currentPath
+                }]);
+            }
+            currentPath = [];
+        };
+
+        canvas.addEventListener('mousedown', start);
+        canvas.addEventListener('mousemove', move);
+        canvas.addEventListener('mouseup', end);
+    </script>
+</body>
+</html>
