@@ -8,8 +8,9 @@ import * as awarenessProtocol from "y-protocols/awareness";
 import { encoding, decoding } from "lib0";
 
 // 1. CONFIGURATION
+
 const PORT = process.env.PORT || 3000;
-const MONGO_URI = "mongodb+srv://kurapatikushalnarasimha95_db_user:yEm04oUnfCLuYD6E@cluster0.sqnkvlt.mongodb.net/?appName=Cluster0";
+const MONGO_URL = process.env.MONGO_URL;
 
 // 2. DB SETUP
 try {
