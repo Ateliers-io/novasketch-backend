@@ -7,7 +7,7 @@ import * as syncProtocol from "y-protocols/sync";
 import * as awarenessProtocol from "y-protocols/awareness";
 import { encoding, decoding } from "lib0";
 import "dotenv/config";
-import connectDB from "./config/db.js";
+import connectDB from "./src/config/db.js";
 
 // 1. CONFIGURATION
 const PORT = process.env.PORT || 3000;
@@ -29,7 +29,7 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-import authRoutes from "./routes/authRoutes.js";
+import authRoutes from "./src/routes/authRoutes.js";
 app.use("/api/auth", authRoutes);
 
 // Map<RoomID, { doc: Y.Doc, clients: Set<WebSocket> }>
