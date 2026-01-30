@@ -28,7 +28,7 @@
         // 2. Connect to YOUR Backend
         const doc = new Y.Doc();
         // Connect to "room-1"
-        const wsProvider = new WebsocketProvider('ws://localhost:3000', 'room-2', doc);
+        const wsProvider = new WebsocketProvider('https://novasketch.onrender.com', 'room-2', doc);
 
         wsProvider.on('status', event => {
             statusDiv.innerText = event.status === 'connected' ? '🟢 Connected' : '🔴 Disconnected';
