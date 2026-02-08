@@ -41,12 +41,12 @@ app.get("/health", (req, res) => res.json({ status: "OK" }));
 /**
  * Helper: Broadcast a message to all clients in a specific room
  */
-const broadcastToRoom = (roomId, message) => {
+const broadcastToRoom = (roomId, message, excludeClient = null) => {
   const room = rooms.get(roomId);
   if (!room) return;
 
   room.clients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
+    if (client !== excludeClient && client.readyState === WebSocket.OPEN) {
       client.send(message);
     }
   });
@@ -105,18 +105,18 @@ const getOrCreateRoom = async (roomId) => {
       const encoder = encoding.createEncoder();
       encoding.writeVarUint(encoder, 0); // MessageSync
       syncProtocol.writeUpdate(encoder, update);
-      broadcastToRoom(roomId, encoding.toUint8Array(encoder));
+      broadcastToRoom(roomId, encoding.toUint8Array(encoder), origin);
     }
   });
 
   // D. Setup ONE Listener for Awareness (Cursors)
-  doc.awareness.on('update', ({ added, updated, removed }) => {
+  doc.awareness.on('update', ({ added, updated, removed }, origin) => {
     const changedClients = added.concat(updated).concat(removed);
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, 1); // MessageAwareness
     const awarenessUpdate = awarenessProtocol.encodeAwarenessUpdate(doc.awareness, changedClients);
     encoding.writeVarUint8Array(encoder, awarenessUpdate);
-    broadcastToRoom(roomId, encoding.toUint8Array(encoder));
+    broadcastToRoom(roomId, encoding.toUint8Array(encoder), origin);
   });
 
   return roomState;
@@ -167,6 +167,17 @@ wss.on("connection", async (ws, req) => {
 
         case 1: // Awareness
           awarenessProtocol.applyAwarenessUpdate(room.doc.awareness, decoding.readVarUint8Array(decoder), ws);
+          break;
+
+        case 2: // Ephemeral/Broadcast (Position/Drag)
+          {
+            const payload = decoding.readVarUint8Array(decoder);
+            // Re-broadcast to others, excluding sender
+            const forwardEncoder = encoding.createEncoder();
+            encoding.writeVarUint(forwardEncoder, 2); // Message Type 2
+            encoding.writeVarUint8Array(forwardEncoder, payload);
+            broadcastToRoom(roomId, encoding.toUint8Array(forwardEncoder), ws);
+          }
           break;
       }
     } catch (e) {
