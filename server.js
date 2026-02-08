@@ -8,6 +8,7 @@ import * as awarenessProtocol from "y-protocols/awareness";
 import { encoding, decoding } from "lib0";
 import "dotenv/config";
 import connectDB from "./src/config/db.js";
+import { validatePropertyUpdate } from "./src/utils/validation.js";
 
 // 1. CONFIGURATION
 const PORT = process.env.PORT || 3000;
@@ -187,6 +188,14 @@ wss.on("connection", async (ws, req) => {
             const payloadStr = new TextDecoder().decode(payload);
             try {
               const data = JSON.parse(payloadStr);
+
+              // Validate payload
+              const validation = validatePropertyUpdate(data);
+              if (!validation.valid) {
+                console.error(`❌ [${roomId}] Invalid property update: ${validation.error}`);
+                break;
+              }
+
               // Expected: { objectId, type: 'resize'|'rotate', properties: { width?, height?, rotation? } }
               console.log(`[${roomId}] Property Update: ${data.objectId} → ${JSON.stringify(data.properties)}`);
 
