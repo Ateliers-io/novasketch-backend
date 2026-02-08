@@ -179,6 +179,27 @@ wss.on("connection", async (ws, req) => {
             broadcastToRoom(roomId, encoding.toUint8Array(forwardEncoder), ws);
           }
           break;
+
+        case 3: // Property Updates (Resize/Rotate)
+          {
+            const payload = decoding.readVarUint8Array(decoder);
+            // Decode payload as JSON
+            const payloadStr = new TextDecoder().decode(payload);
+            try {
+              const data = JSON.parse(payloadStr);
+              // Expected: { objectId, type: 'resize'|'rotate', properties: { width?, height?, rotation? } }
+              console.log(`[${roomId}] Property Update: ${data.objectId} → ${JSON.stringify(data.properties)}`);
+
+              // Re-broadcast to others
+              const forwardEncoder = encoding.createEncoder();
+              encoding.writeVarUint(forwardEncoder, 3); // Message Type 3
+              encoding.writeVarUint8Array(forwardEncoder, payload);
+              broadcastToRoom(roomId, encoding.toUint8Array(forwardEncoder), ws);
+            } catch (parseErr) {
+              console.error("❌ Invalid property update payload:", parseErr);
+            }
+          }
+          break;
       }
     } catch (e) {
       console.error("❌ Error handling message:", e);
