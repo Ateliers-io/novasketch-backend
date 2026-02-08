@@ -8,6 +8,7 @@ import * as awarenessProtocol from "y-protocols/awareness";
 import { encoding, decoding } from "lib0";
 import "dotenv/config";
 import connectDB from "./src/config/db.js";
+import { validatePropertyUpdate } from "./src/utils/validation.js";
 
 // 1. CONFIGURATION
 const PORT = process.env.PORT || 3000;
@@ -30,7 +31,9 @@ app.use(express.json());
 
 // Routes
 import authRoutes from "./src/routes/authRoutes.js";
+import shapeRoutes from "./src/routes/shapeRoutes.js";
 app.use("/api/auth", authRoutes);
+app.use("/api/rooms", shapeRoutes);
 
 // Map<RoomID, { doc: Y.Doc, clients: Set<WebSocket> }>
 const rooms = new Map();
@@ -177,6 +180,40 @@ wss.on("connection", async (ws, req) => {
             encoding.writeVarUint(forwardEncoder, 2); // Message Type 2
             encoding.writeVarUint8Array(forwardEncoder, payload);
             broadcastToRoom(roomId, encoding.toUint8Array(forwardEncoder), ws);
+          }
+          break;
+
+        case 3: // Property Updates (Resize/Rotate)
+          {
+            const payload = decoding.readVarUint8Array(decoder);
+            // Decode payload as JSON
+            const payloadStr = new TextDecoder().decode(payload);
+            try {
+              const data = JSON.parse(payloadStr);
+
+              // Validate payload
+              const validation = validatePropertyUpdate(data);
+              if (!validation.valid) {
+                console.error(`❌ [${roomId}] Invalid property update: ${validation.error}`);
+                break;
+              }
+
+              // Expected: { objectId, type: 'resize'|'rotate', properties: { width?, height?, rotation? } }
+              const emoji = data.type === 'rotate' ? '🔄' : data.type === 'resize' ? '📐' : '✏️';
+              const propSummary = Object.entries(data.properties)
+                .map(([k, v]) => `${k}=${typeof v === 'number' ? v.toFixed(2) : v}`)
+                .join(', ');
+              console.log(`${emoji} [${roomId}] ${data.type?.toUpperCase() || 'UPDATE'}: ${data.objectId} → {${propSummary}}`);
+              console.log(`   └─ Clients in room: ${room.clients.size}`);
+
+              // Re-broadcast to others
+              const forwardEncoder = encoding.createEncoder();
+              encoding.writeVarUint(forwardEncoder, 3); // Message Type 3
+              encoding.writeVarUint8Array(forwardEncoder, payload);
+              broadcastToRoom(roomId, encoding.toUint8Array(forwardEncoder), ws);
+            } catch (parseErr) {
+              console.error("❌ Invalid property update payload:", parseErr);
+            }
           }
           break;
       }
