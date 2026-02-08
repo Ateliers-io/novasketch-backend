@@ -2,16 +2,27 @@ import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    'postmessage'
+);
 
 export const googleAuth = async (req, res) => {
-    const { idToken } = req.body;
+    const { code } = req.body;
 
-    if (!idToken) {
-        return res.status(400).json({ error: "idToken is required" });
+    if (!code) {
+        return res.status(400).json({ error: "Authorization code is required" });
     }
 
     try {
+        const { tokens } = await client.getToken(code);
+        const idToken = tokens.id_token;
+
+        if (!idToken) {
+            return res.status(400).json({ error: "No ID token found in response" });
+        }
+
         const ticket = await client.verifyIdToken({
             idToken,
             audience: process.env.GOOGLE_CLIENT_ID,
@@ -48,7 +59,7 @@ export const googleAuth = async (req, res) => {
         });
     } catch (err) {
         console.error("Google Auth Error:", err);
-        res.status(401).json({ error: "Invalid token" });
+        res.status(401).json({ error: "Invalid token or code" });
     }
 };
 
