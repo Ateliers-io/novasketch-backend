@@ -31,7 +31,9 @@ app.use(express.json());
 
 // Routes
 import authRoutes from "./src/routes/authRoutes.js";
+import shapeRoutes from "./src/routes/shapeRoutes.js";
 app.use("/api/auth", authRoutes);
+app.use("/api/rooms", shapeRoutes);
 
 // Map<RoomID, { doc: Y.Doc, clients: Set<WebSocket> }>
 const rooms = new Map();
