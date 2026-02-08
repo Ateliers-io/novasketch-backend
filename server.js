@@ -197,7 +197,12 @@ wss.on("connection", async (ws, req) => {
               }
 
               // Expected: { objectId, type: 'resize'|'rotate', properties: { width?, height?, rotation? } }
-              console.log(`[${roomId}] Property Update: ${data.objectId} → ${JSON.stringify(data.properties)}`);
+              const emoji = data.type === 'rotate' ? '🔄' : data.type === 'resize' ? '📐' : '✏️';
+              const propSummary = Object.entries(data.properties)
+                .map(([k, v]) => `${k}=${typeof v === 'number' ? v.toFixed(2) : v}`)
+                .join(', ');
+              console.log(`${emoji} [${roomId}] ${data.type?.toUpperCase() || 'UPDATE'}: ${data.objectId} → {${propSummary}}`);
+              console.log(`   └─ Clients in room: ${room.clients.size}`);
 
               // Re-broadcast to others
               const forwardEncoder = encoding.createEncoder();
