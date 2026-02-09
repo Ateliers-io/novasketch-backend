@@ -30,6 +30,7 @@ pnpm-debug.log*
 # Coverage & test output
 # ======================
 coverage/
+tests/reports/
 .nyc_output/
 
 # ======================
