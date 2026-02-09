@@ -38,5 +38,17 @@ export default {
     clearMocks: true,
 
     // Restore mocks after each test
-    restoreMocks: true
+    restoreMocks: true,
+
+    // HTML Reporter for visual test reports
+    reporters: [
+        'default',
+        ['jest-html-reporter', {
+            pageTitle: 'NovaSketch Backend Tests',
+            outputPath: './tests/reports/test-report.html',
+            includeFailureMsg: true,
+            includeSuiteFailure: true,
+            dateFormat: 'yyyy-mm-dd HH:MM:ss'
+        }]
+    ]
 };

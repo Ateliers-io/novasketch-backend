@@ -3,6 +3,8 @@
  * Sets up environment variables and global mocks for tests
  */
 
+import { jest } from '@jest/globals';
+
 // Mock environment variables for testing
 process.env.JWT_SECRET = 'test-jwt-secret-key-for-unit-tests';
 process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
