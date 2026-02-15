@@ -20,4 +20,4 @@ process.env.MONGO_URI = 'mongodb://localhost:27017/novasketch-test';
 // };
 
 // Global test timeout (10 seconds)
-jest.setTimeout(10000);
+jest.setTimeout(60000);

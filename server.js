@@ -16,30 +16,17 @@ const PORT = process.env.PORT || 3000;
 // 2. DB SETUP
 await connectDB();
 
-const RoomSchema = new mongoose.Schema({ _id: String, data: Buffer });
-const Room = mongoose.model("Room", RoomSchema);
+import Room from "./src/models/Room.js";
 
 // 3. SERVER SETUP
-const app = express();
+import app from "./src/app.js";
+
+// 3. SERVER SETUP
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
-// Middleware
-import cors from "cors";
-app.use(cors());
-app.use(express.json());
-
-// Routes
-import authRoutes from "./src/routes/authRoutes.js";
-import shapeRoutes from "./src/routes/shapeRoutes.js";
-app.use("/api/auth", authRoutes);
-app.use("/api/rooms", shapeRoutes);
-
 // Map<RoomID, { doc: Y.Doc, clients: Set<WebSocket> }>
 const rooms = new Map();
-
-app.get("/", (req, res) => res.send("🎨 Drawing Backend Running"));
-app.get("/health", (req, res) => res.json({ status: "OK" }));
 
 /**
  * Helper: Broadcast a message to all clients in a specific room
