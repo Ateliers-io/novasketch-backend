@@ -25,10 +25,10 @@ const PORT = process.env.PORT || 3000;
 await connectDB();
 
 // Room schema (defined here as it is tightly coupled to the Yjs binary format).
-const RoomSchema = new mongoose.Schema({ _id: String, data: Buffer });
-const Room = mongoose.model("Room", RoomSchema);
+import Room from "./src/models/Room.js";
+import app from "./src/app.js";
 
-// Server setup
+
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });

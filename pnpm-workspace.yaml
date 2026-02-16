@@ -1,0 +1,3 @@
+ignoredBuiltDependencies:
+  - mongodb-memory-server
+  - unrs-resolver

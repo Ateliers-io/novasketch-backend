@@ -5,7 +5,7 @@
 
 import express from 'express';
 import * as Y from 'yjs';
-
+import Room from '../models/Room.js';
 const router = express.Router();
 
 // GET /api/rooms/:roomId/shapes - All shapes in a room
@@ -60,9 +60,6 @@ router.get('/:roomId/shape/:shapeId', async (req, res) => {
     const { roomId, shapeId } = req.params;
 
     try {
-        const mongoose = await import('mongoose');
-        const Room = mongoose.default.model('Room');
-
         const room = await Room.findById(roomId);
 
         if (!room || !room.data) {
