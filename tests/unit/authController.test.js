@@ -1,8 +1,5 @@
-/**
- * Unit Tests for authController.js
- * Tests the 'googleAuth' and 'getMe' functions
- * Refactored for ES Modules application using unstable_mockModule
- */
+// Unit Tests for authController.js
+// Tests the 'googleAuth' and 'getMe' functions
 
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 

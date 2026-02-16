@@ -1,44 +1,47 @@
-// Validation utilities for WebSocket message payloads
+// validation.js: Server-side validation for WebSocket property update messages.
+//
+// When a client sends a type-3 message (resize/rotate), we validate the
+// payload structure before rebroadcasting to other clients. This prevents
+// malformed data from corrupting other clients' state. 
+//
+// Used by: server.js (case 3 in the WS message handler)
 
-/**
- * Validates a property update payload
- * @param {Object} payload - The parsed payload object
- * @returns {{ valid: boolean, error?: string }} Validation result
- */
-export function validatePropertyUpdate(payload) {
-    // Check objectId
-    if (!payload || typeof payload.objectId !== 'string' || payload.objectId.trim() === '') {
+export const validatePropertyUpdate = (data) => {
+    if (!data || typeof data !== 'object') {
+        return { valid: false, error: 'Payload must be an object' };
+    }
+
+    if (!data.objectId || typeof data.objectId !== 'string') {
         return { valid: false, error: 'Missing or invalid objectId' };
     }
 
-    // Check type
-    const validTypes = ['resize', 'rotate', 'update'];
-    if (payload.type && !validTypes.includes(payload.type)) {
-        return { valid: false, error: `Invalid type: ${payload.type}. Expected: ${validTypes.join(', ')}` };
+    // Only allow known changes - don't relay arbitrary payloads
+    const allowedTypes = ['resize', 'rotate', 'move'];
+    if (!data.type || !allowedTypes.includes(data.type)) {
+        return { valid: false, error: `Invalid type: ${data.type}. Expected one of: ${allowedTypes.join(', ')}` };
     }
 
-    // Check properties object
-    if (!payload.properties || typeof payload.properties !== 'object') {
+    if (!data.properties || typeof data.properties !== 'object') {
         return { valid: false, error: 'Missing or invalid properties object' };
     }
 
-    const props = payload.properties;
-
-    // Validate numeric fields if present
-    const numericFields = ['width', 'height', 'rotation', 'scaleX', 'scaleY'];
-    for (const field of numericFields) {
-        if (props[field] !== undefined && typeof props[field] !== 'number') {
-            return { valid: false, error: `Property '${field}' must be a number` };
+    // Type-specific validation - ensure numeric fields are actually numbers
+    if (data.type === 'resize') {
+        const { width, height, radius } = data.properties;
+        // At least one dimension must be present
+        const hasValidDimension = (width !== undefined && typeof width === 'number') ||
+            (height !== undefined && typeof height === 'number') ||
+            (radius !== undefined && typeof radius === 'number');
+        if (!hasValidDimension) {
+            return { valid: false, error: 'Resize must include numeric width, height, or radius' };
         }
     }
 
-    // Validate width/height are positive if present
-    if (props.width !== undefined && props.width <= 0) {
-        return { valid: false, error: 'width must be positive' };
-    }
-    if (props.height !== undefined && props.height <= 0) {
-        return { valid: false, error: 'height must be positive' };
+    if (data.type === 'rotate') {
+        if (data.properties.rotation === undefined || typeof data.properties.rotation !== 'number') {
+            return { valid: false, error: 'Rotate must include numeric rotation' };
+        }
     }
 
     return { valid: true };
-}
+};
