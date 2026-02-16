@@ -15,9 +15,6 @@ router.get('/:roomId/shapes', async (req, res) => {
     const { roomId } = req.params;
 
     try {
-        const mongoose = await import('mongoose');
-        const Room = mongoose.default.model('Room');
-
         const room = await Room.findById(roomId);
 
         if (!room || !room.data) {
