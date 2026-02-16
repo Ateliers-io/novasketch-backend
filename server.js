@@ -1,6 +1,6 @@
 // server.js - This is the main entry point. It connects Express, WebSockets,
 // and Yjs CRDT sync.
-//
+// 
 // Architecture: Has the HTTP server, WS logic, Yjs document lifecycle,
 // and persistence.
 //
@@ -24,21 +24,35 @@ const PORT = process.env.PORT || 3000;
 
 await connectDB();
 
+// Room schema (defined here as it is tightly coupled to the Yjs binary format).
 import Room from "./src/models/Room.js";
-
-// Server setup
 import app from "./src/app.js";
 
+const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
+
+// Middleware
+import cors from "cors";
+app.use(cors());
+app.use(express.json());
+
+// Routes (auth handled via jwt)
+import authRoutes from "./src/routes/authRoutes.js";
+import shapeRoutes from "./src/routes/shapeRoutes.js";
+app.use("/api/auth", authRoutes);
+app.use("/api/rooms", shapeRoutes);
 
 // In-memory room registry. Keyed by room ID.
 // Map<RoomID, { doc: Y.Doc, clients: Set<WebSocket> }>
 // Each entry holds the Yjs doc and connected client set.
 const rooms = new Map();
 
+app.get("/", (req, res) => res.send("Drawing Backend Running"));
+app.get("/health", (req, res) => res.json({ status: "OK" }));
+
 // Broadcasts a binary message to every client in a room.
-// Used for both Yjs sync and custom messages.
+// Used for both Yjs sync and our custom messages.
 const broadcastToRoom = (roomId, message, excludeClient = null) => {
   const room = rooms.get(roomId);
   if (!room) return;
@@ -133,7 +147,6 @@ wss.on("connection", async (ws, req) => {
   const roomId = req.url.slice(1) || "default-room";
   console.log(`User joining: ${roomId}`);
 
-  // 1. Join Room
   const room = await getOrCreateRoom(roomId);
   room.clients.add(ws);
 
@@ -180,7 +193,7 @@ wss.on("connection", async (ws, req) => {
           {
             const payload = decoding.readVarUint8Array(decoder);
             const forwardEncoder = encoding.createEncoder();
-            encoding.writeVarUint(forwardEncoder, 2); // Message Type 2
+            encoding.writeVarUint(forwardEncoder, 2);
             encoding.writeVarUint8Array(forwardEncoder, payload);
             broadcastToRoom(roomId, encoding.toUint8Array(forwardEncoder), ws);
           }
@@ -205,7 +218,6 @@ wss.on("connection", async (ws, req) => {
               console.log(`[${roomId}] ${data.type?.toUpperCase() || 'UPDATE'}: ${data.objectId} → {${propSummary}}`);
               console.log(`   Clients in room: ${room.clients.size}`);
 
-              // Re-broadcast to others
               const forwardEncoder = encoding.createEncoder();
               encoding.writeVarUint(forwardEncoder, 3);
               encoding.writeVarUint8Array(forwardEncoder, payload);
@@ -226,7 +238,7 @@ wss.on("connection", async (ws, req) => {
     room.clients.delete(ws);
     // Optional: If room empty, verify logic to remove from memory
     if (room.clients.size === 0) {
-      // logic to clear memory if desired
+      // Intentionally left empty
     }
   });
 });
