@@ -1,22 +1,21 @@
+// reset_db.js: drops ALL collections in the database.
+// Run this manually when you need a clean slate during development.
+
 import mongoose from "mongoose";
 
-// Your Connection String
-const MONGO_URI = "mongodb+srv://kurapatikushalnarasimha95_db_user:yEm04oUnfCLuYD6E@cluster0.sqnkvlt.mongodb.net/?appName=Cluster0";
+const MONGO_URI = "mongodb://localhost:27017/novasketch";
 
-async function wipeDB() {
-  try {
-    console.log("🔌 Connecting to MongoDB...");
+const reset = async () => {
     await mongoose.connect(MONGO_URI);
-    
-    console.log("🔥 Wiping database...");
-    await mongoose.connection.db.dropDatabase();
-    
-    console.log("✅ Database successfully wiped clean!");
-    process.exit(0);
-  } catch (err) {
-    console.error("❌ Error:", err);
-    process.exit(1);
-  }
-}
+  const collections = await mongoose.connection.db.listCollections().toArray();
 
-wipeDB();
+  for (const col of collections) {
+    await mongoose.connection.db.dropCollection(col.name);
+    console.log(`Dropped: ${col.name}`);
+  }
+
+  console.log("Database reset complete.");
+  process.exit(0);
+};
+
+reset();
