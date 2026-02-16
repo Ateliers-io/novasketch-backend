@@ -8,7 +8,6 @@
 //   Client WebSocket <-> this server <-> MongoDB (Room state via Yjs binary snapshots)
 //   REST routes (auth, shapes) are mounted here but defined in src/routes/.
 
-import express from "express";
 import http from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import mongoose from "mongoose";
@@ -28,28 +27,13 @@ await connectDB();
 import Room from "./src/models/Room.js";
 import app from "./src/app.js";
 
-const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
-
-// Middleware
-import cors from "cors";
-app.use(cors());
-app.use(express.json());
-
-// Routes (auth handled via jwt)
-import authRoutes from "./src/routes/authRoutes.js";
-import shapeRoutes from "./src/routes/shapeRoutes.js";
-app.use("/api/auth", authRoutes);
-app.use("/api/rooms", shapeRoutes);
 
 // In-memory room registry. Keyed by room ID.
 // Map<RoomID, { doc: Y.Doc, clients: Set<WebSocket> }>
 // Each entry holds the Yjs doc and connected client set.
 const rooms = new Map();
-
-app.get("/", (req, res) => res.send("Drawing Backend Running"));
-app.get("/health", (req, res) => res.json({ status: "OK" }));
 
 // Broadcasts a binary message to every client in a room.
 // Used for both Yjs sync and our custom messages.
