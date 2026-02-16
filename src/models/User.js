@@ -1,3 +1,9 @@
+// User.js Mongoose model for authenticated users.
+//
+// We only support Google OAuth right now, so googleId is the primary identity key.
+//
+// Used by: authController.js (find-or-create on login), authMiddleware.js (JWT lookup)
+
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
@@ -5,7 +11,7 @@ const userSchema = new mongoose.Schema(
         googleId: {
             type: String,
             required: true,
-            unique: true,
+            unique: true, // One Mongo doc per Google account
         },
         email: {
             type: String,
@@ -20,7 +26,7 @@ const userSchema = new mongoose.Schema(
             default: "",
         },
     },
-    { timestamps: true }
+    { timestamps: true } // createdAt/updatedAt for auditing
 );
 
 const User = mongoose.model("User", userSchema);
