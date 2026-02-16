@@ -6,13 +6,139 @@
 
 import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
-import User from "../models/User.js";
+import User, { EMAIL_REGEX, DISPLAY_NAME_REGEX, PASSWORD_REGEX } from "../models/User.js";
 
 const client = new OAuth2Client(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
     'postmessage' // Required for the popup-based flow used by the frontend
 );
+
+// ─── helpers ───
+
+const signToken = (user) =>
+    jwt.sign(
+        { userId: user._id, email: user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+    );
+
+const sanitizeUser = (user) => ({
+    id: user._id,
+    email: user.email,
+    displayName: user.displayName,
+    avatar: user.avatar,
+    authProvider: user.authProvider,
+});
+
+// ─── register (email + password) ───
+
+export const register = async (req, res) => {
+    const { name, email, password } = req.body;
+
+    // All fields required
+    if (!name || !email || !password) {
+        return res.status(400).json({ error: "Name, email, and password are required" });
+    }
+
+    // Validate display name
+    if (!DISPLAY_NAME_REGEX.test(name)) {
+        return res.status(400).json({
+            error: "Name must be 2-30 characters, start with a letter, and only contain letters, numbers, spaces, hyphens, or underscores",
+            field: "name",
+        });
+    }
+
+    // Validate email
+    if (!EMAIL_REGEX.test(email)) {
+        return res.status(400).json({ error: "Invalid email format", field: "email" });
+    }
+
+    // Validate password
+    if (!PASSWORD_REGEX.test(password)) {
+        return res.status(400).json({
+            error: "Password must be 8-64 characters with at least 1 uppercase, 1 lowercase, 1 digit, and 1 special character",
+            field: "password",
+        });
+    }
+
+    try {
+        // Check for existing user (case-insensitive email match is handled by schema lowercase)
+        const exists = await User.findOne({ email: email.toLowerCase() });
+        if (exists) {
+            return res.status(409).json({ error: "An account with this email already exists", field: "email" });
+        }
+
+        const user = await User.create({
+            email: email.toLowerCase(),
+            displayName: name.trim(),
+            password, // hashed by pre-save hook
+            authProvider: "local",
+        });
+
+        const token = signToken(user);
+        res.status(201).json({ token, user: sanitizeUser(user) });
+    } catch (err) {
+        console.error("Register Error:", err);
+
+        // Mongoose validation errors
+        if (err.name === "ValidationError") {
+            const firstError = Object.values(err.errors)[0];
+            return res.status(400).json({ error: firstError.message });
+        }
+
+        // Duplicate key (race condition edge case)
+        if (err.code === 11000) {
+            return res.status(409).json({ error: "An account with this email already exists", field: "email" });
+        }
+
+        res.status(500).json({ error: "Registration failed. Please try again." });
+    }
+};
+
+// ─── login (email + password) ───
+
+export const login = async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+    }
+
+    // Basic format checks before hitting DB
+    if (!EMAIL_REGEX.test(email)) {
+        return res.status(400).json({ error: "Invalid email format", field: "email" });
+    }
+
+    try {
+        // Explicitly select password since it's excluded by default
+        const user = await User.findOne({ email: email.toLowerCase() }).select("+password");
+
+        if (!user) {
+            // Intentionally vague to avoid user enumeration
+            return res.status(401).json({ error: "Invalid email or password" });
+        }
+
+        // If user registered via Google, they can't log in with password
+        if (user.authProvider === "google" && !user.password) {
+            return res.status(401).json({
+                error: "This account uses Google Sign-In. Please log in with Google.",
+                field: "email",
+            });
+        }
+
+        const isMatch = await user.comparePassword(password);
+        if (!isMatch) {
+            return res.status(401).json({ error: "Invalid email or password" });
+        }
+
+        const token = signToken(user);
+        res.json({ token, user: sanitizeUser(user) });
+    } catch (err) {
+        console.error("Login Error:", err);
+        res.status(500).json({ error: "Login failed. Please try again." });
+    }
+};
 
 // POST /api/auth/google - Exchange Google auth code for a JWT
 export const googleAuth = async (req, res) => {
@@ -45,31 +171,26 @@ export const googleAuth = async (req, res) => {
         let user = await User.findOne({ googleId });
 
         if (!user) {
-            user = await User.create({
-                googleId,
-                email,
-                displayName: name,
-                avatar: picture || "",
-            });
+            // Check if an email-registered user exists — link the Google account
+            user = await User.findOne({ email: email.toLowerCase() });
+            if (user) {
+                user.googleId = googleId;
+                user.avatar = picture || user.avatar;
+                user.authProvider = "google";
+                await user.save();
+            } else {
+                user = await User.create({
+                    googleId,
+                    email,
+                    displayName: name,
+                    avatar: picture || "",
+                    authProvider: "google",
+                });
+            }
         }
 
-        // Step 4: Issue our own JWT so the frontend doesn't need to talk
-        // to Google again until this expires
-        const token = jwt.sign(
-            { userId: user._id, email: user.email },
-            process.env.JWT_SECRET,
-            { expiresIn: "7d" }
-        );
-
-        res.json({
-            token,
-            user: {
-                id: user._id,
-                email: user.email,
-                displayName: user.displayName,
-                avatar: user.avatar,
-            },
-        });
+        const token = signToken(user);
+        res.json({ token, user: sanitizeUser(user) });
     } catch (err) {
         console.error("Google Auth Error:", err);
         res.status(401).json({ error: "Invalid token or code" });
