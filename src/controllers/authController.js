@@ -14,7 +14,7 @@ const client = new OAuth2Client(
     'postmessage' // Required for the popup-based flow used by the frontend
 );
 
-// POST /api/auth/google — Exchange Google auth code for a NovaSketch JWT
+// POST /api/auth/google - Exchange Google auth code for a JWT
 export const googleAuth = async (req, res) => {
     const { code } = req.body;
 
@@ -76,7 +76,7 @@ export const googleAuth = async (req, res) => {
     }
 };
 
-// GET /api/auth/me — Returns the currently authenticated user's profile.
+// GET /api/auth/me - Returns the currently authenticated user's profile.
 // Requires the 'protect' middleware (authMiddleware.js) to have already
 // verified the JWT and attached req.userId.
 export const getMe = async (req, res) => {
