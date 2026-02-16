@@ -18,6 +18,11 @@ const mockUser = {
     create: jest.fn(),
 };
 
+// Mock Constants
+const DISPLAY_NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9 _-]{1,29}$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_\-+=])[A-Za-z\d@$!%*?&#^()_\-+=]{8,64}$/;
+
 const mockJwt = {
     sign: jest.fn(),
     verify: jest.fn(),
@@ -33,6 +38,9 @@ const mockOAuth2ClientConstructor = jest.fn(() => mockOAuth2ClientInstance);
 // 2. Register Mocks
 jest.unstable_mockModule('../../src/models/User.js', () => ({
     default: mockUser,
+    DISPLAY_NAME_REGEX,
+    EMAIL_REGEX,
+    PASSWORD_REGEX
 }));
 
 jest.unstable_mockModule('jsonwebtoken', () => ({
@@ -201,7 +209,8 @@ describe('OAuth Integration', () => {
                 googleId: 'google_456',
                 email: 'user@gmail.com',
                 displayName: 'Google User',
-                avatar: 'https://photo.url/avatar.jpg'
+                avatar: 'https://photo.url/avatar.jpg',
+                authProvider: 'google'
             });
         });
 
@@ -222,7 +231,7 @@ describe('OAuth Integration', () => {
 
             // Should create user with empty string avatar, not undefined
             expect(mockUser.create).toHaveBeenCalledWith(
-                expect.objectContaining({ avatar: '' })
+                expect.objectContaining({ avatar: '', authProvider: 'google' })
             );
         });
 

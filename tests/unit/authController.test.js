@@ -10,6 +10,11 @@ const mockUser = {
     create: jest.fn(),
 };
 
+// Mock Constants
+const DISPLAY_NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9 _-]{1,29}$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_\-+=])[A-Za-z\d@$!%*?&#^()_\-+=]{8,64}$/;
+
 const mockJwt = {
     sign: jest.fn(),
     verify: jest.fn(),
@@ -26,6 +31,9 @@ const mockOAuth2ClientConstructor = jest.fn(() => mockOAuth2ClientInstance);
 // 2. Register Mocks using unstable_mockModule (MUST be before imports)
 jest.unstable_mockModule('../../src/models/User.js', () => ({
     default: mockUser,
+    DISPLAY_NAME_REGEX,
+    EMAIL_REGEX,
+    PASSWORD_REGEX
 }));
 
 jest.unstable_mockModule('jsonwebtoken', () => ({
@@ -107,7 +115,8 @@ describe('authController', () => {
                 googleId: 'google_123',
                 email: 'newuser@example.com',
                 displayName: 'New User',
-                avatar: 'profile.jpg'
+                avatar: 'profile.jpg',
+                authProvider: 'google'
             });
             expect(mockJwt.sign).toHaveBeenCalled();
             expect(mockRes.json).toHaveBeenCalledWith({

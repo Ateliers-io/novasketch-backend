@@ -24,8 +24,6 @@
     "jsonwebtoken": "^9.0.3",
     "lib0": "^0.2.117",
     "mongoose": "^9.1.5",
-    "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0",
     "ws": "^8.19.0",
     "y-protocols": "^1.0.7",
     "yjs": "^13.6.29"

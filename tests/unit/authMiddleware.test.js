@@ -61,6 +61,7 @@ describe('authMiddleware - protect()', () => {
         });
     });
 
+
     // ============================================
     // 2.2 & 2.3: Edge Cases - Missing/Invalid Header
     // ============================================
@@ -75,7 +76,7 @@ describe('authMiddleware - protect()', () => {
 
             // Assert
             expect(res.status).toHaveBeenCalledWith(401);
-            expect(res.json).toHaveBeenCalledWith({ error: 'No token provided' });
+            expect(res.json).toHaveBeenCalledWith({ error: 'Not authorized' });
             expect(mockNext).not.toHaveBeenCalled();
         });
 
@@ -89,7 +90,7 @@ describe('authMiddleware - protect()', () => {
 
             // Assert
             expect(res.status).toHaveBeenCalledWith(401);
-            expect(res.json).toHaveBeenCalledWith({ error: 'No token provided' });
+            expect(res.json).toHaveBeenCalledWith({ error: 'Not authorized' });
             expect(mockNext).not.toHaveBeenCalled();
         });
 
@@ -103,7 +104,7 @@ describe('authMiddleware - protect()', () => {
 
             // Assert
             expect(res.status).toHaveBeenCalledWith(401);
-            expect(res.json).toHaveBeenCalledWith({ error: 'No token provided' });
+            expect(res.json).toHaveBeenCalledWith({ error: 'Not authorized' });
             expect(mockNext).not.toHaveBeenCalled();
         });
     });
@@ -127,7 +128,7 @@ describe('authMiddleware - protect()', () => {
 
             // Assert
             expect(res.status).toHaveBeenCalledWith(401);
-            expect(res.json).toHaveBeenCalledWith({ error: 'Invalid or expired token' });
+            expect(res.json).toHaveBeenCalledWith({ error: 'Token invalid or expired' });
             expect(mockNext).not.toHaveBeenCalled();
         });
 
@@ -141,7 +142,7 @@ describe('authMiddleware - protect()', () => {
 
             // Assert
             expect(res.status).toHaveBeenCalledWith(401);
-            expect(res.json).toHaveBeenCalledWith({ error: 'Invalid or expired token' });
+            expect(res.json).toHaveBeenCalledWith({ error: 'Token invalid or expired' });
             expect(mockNext).not.toHaveBeenCalled();
         });
 
@@ -160,7 +161,7 @@ describe('authMiddleware - protect()', () => {
 
             // Assert
             expect(res.status).toHaveBeenCalledWith(401);
-            expect(res.json).toHaveBeenCalledWith({ error: 'Invalid or expired token' });
+            expect(res.json).toHaveBeenCalledWith({ error: 'Token invalid or expired' });
             expect(mockNext).not.toHaveBeenCalled();
         });
     });
