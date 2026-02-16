@@ -6,7 +6,7 @@ import mongoose from "mongoose";
 const MONGO_URI = "mongodb://localhost:27017/novasketch";
 
 const reset = async () => {
-    await mongoose.connect(MONGO_URI);
+  await mongoose.connect(MONGO_URI);
   const collections = await mongoose.connection.db.listCollections().toArray();
 
   for (const col of collections) {
