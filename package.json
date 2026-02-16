@@ -43,6 +43,15 @@
   "engines": {
     "node": ">=20"
   },
+  "pnpm": {
+    "ignoredBuiltDependencies": [
+      "mongodb-memory-server",
+      "unrs-resolver"
+    ],
+    "onlyBuiltDependencies": [
+      "bcrypt"
+    ]
+  },
   "config": {
     "mongodbMemoryServer": {
       "disablePostinstall": true
