@@ -52,7 +52,7 @@ describe('Auth Route Guard & Redirection', () => {
             protect(req, res, next);
 
             expect(res.status).toHaveBeenCalledWith(401);
-            expect(res.json).toHaveBeenCalledWith({ error: 'No token provided' });
+            expect(res.json).toHaveBeenCalledWith({ error: 'Not authorized' });
             expect(next).not.toHaveBeenCalled();
             expect(req.userId).toBeNull();
         });
@@ -76,7 +76,7 @@ describe('Auth Route Guard & Redirection', () => {
             protect(req, res, next);
 
             expect(res.status).toHaveBeenCalledWith(401);
-            expect(res.json).toHaveBeenCalledWith({ error: 'Invalid or expired token' });
+            expect(res.json).toHaveBeenCalledWith({ error: 'Token invalid or expired' });
             expect(next).not.toHaveBeenCalled();
         });
     });

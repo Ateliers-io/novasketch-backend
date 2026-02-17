@@ -89,7 +89,12 @@ export const register = async (req, res) => {
 
         // Duplicate key (race condition edge case)
         if (err.code === 11000) {
-            return res.status(409).json({ error: "An account with this email already exists", field: "email" });
+            const field = Object.keys(err.keyPattern || {})[0] || "email";
+            const messages = {
+                email: "An account with this email already exists",
+                googleId: "This Google account is already linked to another user",
+            };
+            return res.status(409).json({ error: messages[field] || "An account with these credentials already exists", field });
         }
 
         res.status(500).json({ error: "Registration failed. Please try again." });
@@ -140,7 +145,8 @@ export const login = async (req, res) => {
     }
 };
 
-// POST /api/auth/google - Exchange Google auth code for a JWT
+// ─── google OAuth (existing) ───
+
 export const googleAuth = async (req, res) => {
     const { code } = req.body;
 
@@ -197,9 +203,8 @@ export const googleAuth = async (req, res) => {
     }
 };
 
-// GET /api/auth/me - Returns the currently authenticated user's profile.
-// Requires the 'protect' middleware (authMiddleware.js) to have already
-// verified the JWT and attached req.userId.
+// ─── me (existing) ───
+
 export const getMe = async (req, res) => {
     try {
         const user = await User.findById(req.userId).select("-__v");

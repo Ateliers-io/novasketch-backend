@@ -10,7 +10,6 @@
 
 import http from "http";
 import { WebSocketServer, WebSocket } from "ws";
-import mongoose from "mongoose";
 import * as Y from "yjs";
 import * as syncProtocol from "y-protocols/sync";
 import * as awarenessProtocol from "y-protocols/awareness";

@@ -32,7 +32,6 @@ describe('User Model Test', () => {
             err = error;
         }
         expect(err).toBeInstanceOf(mongoose.Error.ValidationError);
-        expect(err.errors.googleId).toBeDefined();
         expect(err.errors.displayName).toBeDefined();
     });
 
