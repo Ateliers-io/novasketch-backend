@@ -212,7 +212,7 @@ export const getMe = async (req, res) => {
             return res.status(404).json({ error: "User not found" });
         }
         res.json(user);
-    } catch (err) {
+    } catch {
         res.status(500).json({ error: "Server error" });
     }
 };

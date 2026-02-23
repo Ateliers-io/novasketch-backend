@@ -21,7 +21,7 @@ export const protect = (req, res, next) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.userId = decoded.userId;
         next();
-    } catch (err) {
+    } catch {
         // Covers expired tokens, tampered tokens, wrong secret, etc.
         // The frontend's Axios interceptor (services/api.ts) catches 401s
         // and redirects to /auth.
