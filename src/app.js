@@ -7,6 +7,7 @@ import express from "express";
 import cors from "cors";
 import authRoutes from "./routes/authRoutes.js";
 import shapeRoutes from "./routes/shapeRoutes.js";
+import sessionRoutes from "./routes/sessionRoutes.js";
 import healthRouter from "./routes/health.js";
 
 const app = express();
@@ -18,6 +19,7 @@ app.use(express.json());
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/rooms", shapeRoutes);
+app.use("/api/session", sessionRoutes);
 app.use("/health", healthRouter);
 
 app.get("/", (req, res) => res.send("Drawing Backend Running"));
