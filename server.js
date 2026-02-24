@@ -47,6 +47,13 @@ const broadcastToRoom = (roomId, message, excludeClient = null) => {
   });
 };
 
+const buildPresenceMessage = (jsonStr) => {
+  const encoder = encoding.createEncoder();
+  encoding.writeVarUint(encoder, 4); // type 4 = presence event
+  encoding.writeVarString(encoder, jsonStr);
+  return encoding.toUint8Array(encoder);
+};
+
 // Lazily initialises a room: loads Yjs state from Mongo, sets up
 // update listener for persistence + broadcast.
 // The debounced save avoids querying Mongo on every rapid drawing strokes.
