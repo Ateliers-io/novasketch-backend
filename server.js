@@ -145,7 +145,7 @@ wss.on("connection", async (ws, req) => {
   const room = await getOrCreateRoom(roomId);
   room.clients.add(ws);
 
-  // Notifies other participants that a new user has joined
+  // Notify other participants that a new user has joined
   const joinPayload = JSON.stringify({
     event: "user_joined",
     name: ws.meta.name,
@@ -153,6 +153,17 @@ wss.on("connection", async (ws, req) => {
     count: room.clients.size,
   });
   broadcastToRoom(roomId, buildPresenceMessage(joinPayload), ws);
+
+  // Send current room participants to the newly joining participant
+  const members = Array.from(room.clients).map(c => ({
+    name: c.meta.name,
+    clientId: c.meta.clientId,
+  }));
+  ws.send(buildPresenceMessage(JSON.stringify({
+    event: "room_state",
+    members,
+    count: members.length,
+  })));
 
   // Send the full Yjs state so the new client can catch up
   const encoder = encoding.createEncoder();
