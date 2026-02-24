@@ -1,7 +1,4 @@
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-
-let mongo = null;
 
 export const connect = async () => {
     // If we want to use in-memory:
