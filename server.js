@@ -132,6 +132,7 @@ const getOrCreateRoom = async (roomId) => {
 //   1 = Awareness (cursor/presence)
 //   2 = Ephemeral broadcast (drag positions - not persisted)
 //   3 = Property updates (resize/rotate - validated then rebroadcast)
+//   4 = presence event (user join/leave)
 wss.on("connection", async (ws, req) => {
   const urlObj = new URL(req.url, "http://localhost");
   const roomId = urlObj.pathname.slice(1) || "default-room";
@@ -143,6 +144,15 @@ wss.on("connection", async (ws, req) => {
 
   const room = await getOrCreateRoom(roomId);
   room.clients.add(ws);
+
+  // Notifies other participants that a new user has joined
+  const joinPayload = JSON.stringify({
+    event: "user_joined",
+    name: ws.meta.name,
+    clientId: ws.meta.clientId,
+    count: room.clients.size,
+  });
+  broadcastToRoom(roomId, buildPresenceMessage(joinPayload), ws);
 
   // Send the full Yjs state so the new client can catch up
   const encoder = encoding.createEncoder();
