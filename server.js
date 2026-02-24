@@ -251,10 +251,16 @@ wss.on("connection", async (ws, req) => {
   // Cleanup on Disconnect
   ws.on("close", () => {
     room.clients.delete(ws);
-    // Optional: If room empty, verify logic to remove from memory
-    if (room.clients.size === 0) {
-      // Intentionally left empty
-    }
+
+    const leavePayload = JSON.stringify({
+      event: "user_left",
+      name: ws.meta?.name,
+      clientId: ws.meta?.clientId,
+      count: room.clients.size,
+    });
+    broadcastToRoom(roomId, buildPresenceMessage(leavePayload));
+
+    console.log(`[${roomId}] ${ws.meta?.name} left (${room.clients.size} remaining)`);
   });
 });
 
