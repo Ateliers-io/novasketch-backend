@@ -126,9 +126,13 @@ const getOrCreateRoom = async (roomId) => {
 //   2 = Ephemeral broadcast (drag positions - not persisted)
 //   3 = Property updates (resize/rotate - validated then rebroadcast)
 wss.on("connection", async (ws, req) => {
-  // Room ID is just the URL path. "/my-room" -> "my-room".
-  const roomId = req.url.slice(1) || "default-room";
-  console.log(`User joining: ${roomId}`);
+  const urlObj = new URL(req.url, "http://localhost");
+  const roomId = urlObj.pathname.slice(1) || "default-room";
+  const name = urlObj.searchParams.get("name") || "Anonymous";
+  const clientId = urlObj.searchParams.get("clientId") || crypto.randomUUID();
+  ws.meta = { name, clientId };
+
+  console.log(`[${roomId}] ${name} (${clientId}) joined`);
 
   const room = await getOrCreateRoom(roomId);
   room.clients.add(ws);
