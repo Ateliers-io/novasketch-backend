@@ -52,4 +52,31 @@ describe('User Stories 1.3.3, 1.4.1, 1.4.2: Presence Events', () => {
             expect(name).toBe('John Doe');
         });
     });
+
+    // =========================================================================
+    // 1.4.1: buildPresenceMessage encoding
+    // =========================================================================
+    describe('1.4.1 - buildPresenceMessage encoding (type 4)', () => {
+
+        it('should produce a Uint8Array starting with message type 4', () => {
+            const msg = buildPresenceMessage(JSON.stringify({ event: 'test' }));
+
+            expect(msg).toBeInstanceOf(Uint8Array);
+            const decoder = decoding.createDecoder(msg);
+            expect(decoding.readVarUint(decoder)).toBe(4);
+        });
+
+        it('should decode back to the original JSON string', () => {
+            const payload = { event: 'user_joined', name: 'Alice', clientId: 'abc', count: 1 };
+            const msg = buildPresenceMessage(JSON.stringify(payload));
+
+            const decoder = decoding.createDecoder(msg);
+            decoding.readVarUint(decoder); // skip type byte
+            const decoded = JSON.parse(decoding.readVarString(decoder));
+
+            expect(decoded.event).toBe('user_joined');
+            expect(decoded.name).toBe('Alice');
+            expect(decoded.count).toBe(1);
+        });
+    });
 });
