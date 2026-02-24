@@ -79,4 +79,47 @@ describe('User Stories 1.3.3, 1.4.1, 1.4.2: Presence Events', () => {
             expect(decoded.count).toBe(1);
         });
     });
+
+    // =========================================================================
+    // 1.4.2: user_joined event
+    // =========================================================================
+    describe('1.4.2 - user_joined payload', () => {
+
+        it('should have correct event, name, clientId, and count fields', () => {
+            const clients = new Set();
+            const ws = { meta: { name: 'Bob', clientId: 'bob-1' } };
+            clients.add(ws);
+
+            const payload = JSON.stringify({
+                event: 'user_joined',
+                name: ws.meta.name,
+                clientId: ws.meta.clientId,
+                count: clients.size,
+            });
+            const decoded = JSON.parse(payload);
+
+            expect(decoded.event).toBe('user_joined');
+            expect(decoded.name).toBe('Bob');
+            expect(decoded.clientId).toBe('bob-1');
+            expect(decoded.count).toBe(1);
+        });
+
+        it('should increment count as more users join', () => {
+            const clients = new Set();
+
+            ['Alice', 'Bob', 'Carol'].forEach((name, i) => {
+                const ws = { meta: { name, clientId: `id-${i}` } };
+                clients.add(ws);
+
+                const payload = JSON.parse(JSON.stringify({
+                    event: 'user_joined',
+                    name: ws.meta.name,
+                    clientId: ws.meta.clientId,
+                    count: clients.size,
+                }));
+
+                expect(payload.count).toBe(i + 1);
+            });
+        });
+    });
 });
