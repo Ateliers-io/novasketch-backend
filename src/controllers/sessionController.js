@@ -52,3 +52,32 @@ export const getSession = async (req, res) => {
         res.status(500).json({ message: 'Server error retrieving session' });
     }
 };
+
+export const lockSession = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { is_locked } = req.body;
+
+        if (typeof is_locked !== 'boolean') {
+            return res.status(400).json({ message: 'is_locked must be a boolean' });
+        }
+
+        const session = await Session.findByIdAndUpdate(
+            id,
+            { is_locked },
+            { new: true }
+        );
+
+        if (!session) {
+            return res.status(404).json({ message: 'Session not found' });
+        }
+
+        res.status(200).json({
+            sessionId: session._id,
+            is_locked: session.is_locked
+        });
+    } catch (error) {
+        console.error('Error locking session:', error);
+        res.status(500).json({ message: 'Server error updating lock state' });
+    }
+};
