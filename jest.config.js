@@ -6,6 +6,10 @@ export default {
     // Use native ES modules
     testEnvironment: 'node',
 
+    // Run tests sequentially — integration tests share a single Atlas DB,
+    // so parallel suites would drop each other's data via clearDatabase().
+    maxWorkers: 1,
+
     // Transform ES modules (not needed with --experimental-vm-modules)
     transform: {},
 
