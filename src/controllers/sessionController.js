@@ -44,6 +44,7 @@ export const getSession = async (req, res) => {
             sessionId: session._id,
             name: session.name,
             createdBy: session.createdBy,
+            is_locked: session.is_locked,
             createdAt: session.createdAt
         });
     } catch (error) {
