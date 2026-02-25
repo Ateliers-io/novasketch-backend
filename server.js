@@ -24,6 +24,7 @@ await connectDB();
 
 // Room schema (defined here as it is tightly coupled to the Yjs binary format).
 import Room from "./src/models/Room.js";
+import Session from "./src/models/Session.js";
 import app from "./src/app.js";
 
 const server = http.createServer(app);
@@ -69,8 +70,18 @@ const getOrCreateRoom = async (roomId) => {
   // so cursor presence works from the first message.
   doc.awareness = new awarenessProtocol.Awareness(doc);
 
-  const roomState = { doc, clients: new Set() };
+  const roomState = { doc, clients: new Set(), isLocked: false };
   rooms.set(roomId, roomState);
+
+  // Load lock state from Session doc (if one exists for this roomId)
+  try {
+    const session = await Session.findById(roomId);
+    if (session) {
+      roomState.isLocked = session.is_locked;
+    }
+  } catch (e) {
+    console.error(`Session lock load error for ${roomId}:`, e);
+  }
 
   // Restore previous state from Mongo (if any)
   try {
@@ -191,7 +202,15 @@ wss.on("connection", async (ws, req) => {
       const messageType = decoding.readVarUint(decoder);
 
       switch (messageType) {
-        case 0: // Yjs sync - the CRDT does the heavy lifting
+        case 0: // Yjs sync
+          // Reject write (sync step 2 = update) if the session is locked
+          if (room.isLocked) {
+            ws.send(buildPresenceMessage(JSON.stringify({
+              event: "session_locked",
+              message: "This session is locked. Your changes were not saved."
+            })));
+            break;
+          }
           encoding.writeVarUint(encoder, 0);
           syncProtocol.readSyncMessage(decoder, encoder, room.doc, ws);
           // Only reply if sync protocol produced a response
