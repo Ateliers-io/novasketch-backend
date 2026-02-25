@@ -1,14 +1,20 @@
 // tests/setup.js: Jest global setup. Runs before every test file.
-//
-// We mock all env variables here because test isolation matters.
-
+import 'dotenv/config';
 import { jest } from '@jest/globals';
 
-// Fake credentials
+// Fake credentials for auth-related unit tests
 process.env.JWT_SECRET = 'test-jwt-secret-key-for-unit-tests';
 process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
 process.env.GOOGLE_CLIENT_SECRET = 'test-google-client-secret';
-process.env.MONGO_URI = 'mongodb://localhost:27017/novasketch-test';
+
+// Use test DB in Atlas for integration tests
+// Credentials come from .env
+if (process.env.MONGO_URI) {
+    const url = new URL(process.env.MONGO_URI);
+    url.pathname = '/novasketch-test';
+    process.env.MONGO_URI = url.toString();
+}
+
 
 // Uncomment to silence console noise during test runs
 // global.console = {
