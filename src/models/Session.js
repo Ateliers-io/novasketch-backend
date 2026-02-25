@@ -12,6 +12,10 @@ const SessionSchema = new mongoose.Schema({
     createdBy: {
         type: String,
         default: "anonymous"
+    },
+    is_locked: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 
