@@ -9,8 +9,44 @@ import Room from '../models/Room.js';
 
 const router = express.Router();
 
-// GET /api/rooms/:roomId/shapes
-// Returns shapes data from a room's Yjs document
+/**
+ * @swagger
+ * /api/rooms/{roomId}/shapes:
+ *   get:
+ *     summary: List all shapes in a room
+ *     description: Decodes the Yjs binary snapshot and returns all shapes from the room's document.
+ *     tags: [Shapes]
+ *     parameters:
+ *       - in: path
+ *         name: roomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Room ID
+ *     responses:
+ *       200:
+ *         description: List of shapes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 roomId:
+ *                   type: string
+ *                 count:
+ *                   type: integer
+ *                 shapes:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *       404:
+ *         description: Room not found
+ *       500:
+ *         description: Failed to fetch shapes
+ */
 router.get('/:roomId/shapes', async (req, res) => {
     const { roomId } = req.params;
 
@@ -54,8 +90,38 @@ router.get('/:roomId/shapes', async (req, res) => {
     }
 });
 
-// GET /api/rooms/:roomId/shape/:shapeId
-// Returns a specific shape by ID
+/**
+ * @swagger
+ * /api/rooms/{roomId}/shape/{shapeId}:
+ *   get:
+ *     summary: Get a specific shape by ID
+ *     tags: [Shapes]
+ *     parameters:
+ *       - in: path
+ *         name: roomId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: shapeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Shape data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *       404:
+ *         description: Room or shape not found
+ *       500:
+ *         description: Failed to fetch shape
+ */
 router.get('/:roomId/shape/:shapeId', async (req, res) => {
     const { roomId, shapeId } = req.params;
 
