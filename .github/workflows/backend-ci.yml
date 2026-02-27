@@ -37,7 +37,7 @@ jobs:
         run: pnpm run lint
 
       - name: Security Audit
-        run: pnpm audit --audit-level=high --prod
+        run: pnpm audit --audit-level=high
 
       - name: Run Unit & Integration Tests
         run: pnpm run test
