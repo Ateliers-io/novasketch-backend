@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   update-readme:
@@ -13,8 +14,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -33,12 +32,11 @@ jobs:
       - name: Generate README
         run: node scripts/generate-readme.js
 
-      - name: Commit & Push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git diff --quiet README.md || {
-            git add README.md
-            git commit -m "docs: auto-update README [skip ci]"
-            git push
-          }
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "docs: auto-update README [skip ci]"
+          title: "docs: auto-update README"
+          body: "Automated README update triggered by merge to main."
+          branch: auto-update-readme
+          delete-branch: true
