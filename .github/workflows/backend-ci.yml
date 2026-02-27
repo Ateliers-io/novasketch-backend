@@ -9,6 +9,12 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
 
     steps:
       - uses: actions/checkout@v4
@@ -16,6 +22,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
+          version: 8
           run_install: false
 
       - name: Setup Node.js
@@ -30,5 +37,10 @@ jobs:
       - name: Run Lint
         run: pnpm run lint
 
-      - name: Run Unit Tests
+      - name: Security Audit
+        run: pnpm audit --audit-level=high
+
+      - name: Run Unit & Integration Tests
         run: pnpm run test
+        env:
+          DATABASE_URL: mongodb+srv://kurapatikushalnarasimha95_db_user:yEm04oUnfCLuYD6E@cluster0.sqnkvlt.mongodb.net/?appName=Cluster0
