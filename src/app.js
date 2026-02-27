@@ -5,6 +5,8 @@
 
 import express from "express";
 import cors from "cors";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./config/swagger.js";
 import authRoutes from "./routes/authRoutes.js";
 import shapeRoutes from "./routes/shapeRoutes.js";
 import sessionRoutes from "./routes/sessionRoutes.js";
@@ -15,6 +17,12 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// API Documentation
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: "NovaSketch API Docs",
+}));
 
 // Routes
 app.use("/api/auth", authRoutes);

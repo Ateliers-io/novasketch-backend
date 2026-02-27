@@ -24,19 +24,71 @@ The NovaSketch backend is a high-performance Node.js environment designed to han
 
 ## 📂 Project Architecture
 
+<!-- TREE:START -->
 ```text
 novasketch-backend/
+├── .github/
+│   └── workflows/
+│       ├── backend-ci.yml
+│       └── update-readme.yml
+├── scripts/
+│   ├── generate-readme.js
+│   └── swagger-export.js
 ├── src/
-│   ├── config/          # Database connection (Mongoose)
-│   ├── controllers/     # Auth logic and session handling
-│   ├── middleware/      # JWT and route protection
-│   ├── models/          # User and persistence schemas
-│   ├── routes/          # API endpoints for auth and shapes
-│   └── utils/           # Transformation and property validation
-├── server.js            # Main entry point; WebSocket & Yjs logic
-└── package.json         # Dependency and script definitions
-
+│   ├── config/
+│   │   ├── db.js
+│   │   └── swagger.js
+│   ├── controllers/
+│   │   ├── authController.js
+│   │   └── sessionController.js
+│   ├── middleware/
+│   │   ├── authMiddleware.js
+│   │   └── checkSessionLock.js
+│   ├── models/
+│   │   ├── Room.js
+│   │   ├── Session.js
+│   │   └── User.js
+│   ├── routes/
+│   │   ├── authRoutes.js
+│   │   ├── health.js
+│   │   ├── sessionRoutes.js
+│   │   └── shapeRoutes.js
+│   ├── utils/
+│   │   └── validation.js
+│   └── app.js
+├── tests/
+│   ├── integration/
+│   │   ├── authRoutes.test.js
+│   │   ├── sessionRoutes.test.js
+│   │   └── shapeRoutes.test.js
+│   ├── reports/
+│   │   └── test-report.html
+│   ├── unit/
+│   │   ├── .gitkeep
+│   │   ├── authController.test.js
+│   │   ├── authMiddleware.test.js
+│   │   ├── authRouteGuard.test.js
+│   │   ├── checkSessionLock.test.js
+│   │   ├── concurrentEditing.test.js
+│   │   ├── networkOptimization.test.js
+│   │   ├── oauthIntegration.test.js
+│   │   ├── presenceEvents.test.js
+│   │   ├── Room.test.js
+│   │   └── User.test.js
+│   ├── utils/
+│   │   └── db_handler.js
+│   └── setup.js
+├── .gitignore
+├── eslint.config.js
+├── index.html
+├── jest.config.js
+├── nodemon.json
+├── package.json
+├── README.md
+├── reset_db.js
+└── server.js
 ```
+<!-- TREE:END -->
 
 ---
 
@@ -84,7 +136,39 @@ pnpm start
 
 ## 🔌 API & Socket Endpoints
 
-* **HTTP Health Check**: `GET /health`.
-* **Authentication**: `POST /api/auth/*` for login and registration.
-* **Canvas Persistence**: `GET /api/rooms/*` for retrieving stored states.
-* **WebSocket Gateway**: `ws://<server>:<port>/<room-id>` handles all real-time drawing sync and awareness updates.
+<!-- API:START -->
+#### Auth
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/auth/register` | Register a new account |
+| `POST` | `/api/auth/login` | Login with email and password |
+| `POST` | `/api/auth/google` | Authenticate via Google OAuth |
+| `GET` | `/api/auth/me` | Get current user profile |
+
+#### Health
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/health` | Health check |
+
+#### Sessions
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/session` | Create a new whiteboard session |
+| `GET` | `/api/session/{id}` | Get session details by ID |
+| `PATCH` | `/api/session/{id}/lock` | Lock or unlock a session |
+
+#### Shapes
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/rooms/{roomId}/shapes` | List all shapes in a room |
+| `GET` | `/api/rooms/{roomId}/shape/{shapeId}` | Get a specific shape by ID |
+
+* **WebSocket Gateway**: `ws://<server>:<port>/<room-id>` — real-time drawing sync and awareness updates.
+
+> 📖 **Interactive docs**: Start the server and visit [`/api-docs`](http://localhost:3000/api-docs) for the full Swagger UI.
+
+<!-- API:END -->

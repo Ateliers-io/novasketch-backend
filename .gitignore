@@ -60,3 +60,6 @@ Thumbs.db
 # Misc
 # ======================
 eslint-report.html
+
+# Generated Swagger spec
+swagger.json
