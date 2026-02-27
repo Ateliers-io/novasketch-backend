@@ -46,7 +46,7 @@
   "pnpm": {
     "overrides": {
       "minimatch@<3.1.5": ">=3.1.5",
-      "minimatch":"^9.0.7"
+      "minimatch": "^9.0.7"
     },
     "ignoredBuiltDependencies": [
       "unrs-resolver"
