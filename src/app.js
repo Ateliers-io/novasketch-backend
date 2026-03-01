@@ -81,7 +81,7 @@ app.use((req, res) => {
 });
 
 // Global error handler - must be last
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
     console.error(err.stack);
     
     const statusCode = err.statusCode || err.status || 500;
