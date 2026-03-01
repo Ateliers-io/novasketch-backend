@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "target": "ES2022",
+        "checkJs": false
+    },
+    "include": [
+        "src/**/*",
+        "tests/**/*",
+        "scripts/**/*",
+        "server.js",
+        "reset_db.js"
+    ],
+    "exclude": [
+        "node_modules",
+        "coverage"
+    ]
+}
