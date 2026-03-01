@@ -50,13 +50,14 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Rate limiting for auth endpoints
+// Rate limiting for auth endpoints (disabled in test environment)
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,  // 15 minutes
-    max: 10,  // Limit each IP to 10 requests per windowMs
+    max: process.env.NODE_ENV === 'test' ? 0 : 10,  // 0 = unlimited in tests
     message: 'Too many authentication attempts, please try again later',
     standardHeaders: true,
     legacyHeaders: false,
+    skip: () => process.env.NODE_ENV === 'test',
 });
 
 // API Documentation

@@ -2,6 +2,9 @@
 import 'dotenv/config';
 import { jest } from '@jest/globals';
 
+// Ensure test environment is identified so guards like rate limiting are skipped
+process.env.NODE_ENV = 'test';
+
 // Fake credentials for auth-related unit tests
 process.env.JWT_SECRET = 'test-jwt-secret-key-for-unit-tests';
 process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
