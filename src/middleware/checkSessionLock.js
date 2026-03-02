@@ -1,26 +1,27 @@
-import Session from '../models/Session.js';
+import Canvas from '../models/Canvas.js';
 
-// checkSessionLock: Guards any route from writes when a session is locked.
+// checkSessionLock: Guards any route from writes when a canvas is locked.
 // Expects :id param.
-// Returns 403 if the session is locked, 404 if not found, otherwise calls next().
+// Returns 403 if the canvas is locked, 404 if not found, otherwise calls next().
 const checkSessionLock = async (req, res, next) => {
     try {
-        const sessionId = req.params.id;
-        const session = await Session.findById(sessionId);
+        const canvasId = req.params.id;
+        const canvas = await Canvas.findById(canvasId);
 
-        if (!session) {
-            return res.status(404).json({ message: 'Session not found' });
+        if (!canvas) {
+            return res.status(404).json({ message: 'Canvas not found' });
         }
 
-        if (session.is_locked) {
-            return res.status(403).json({ error: 'Session is locked' });
+        if (canvas.is_locked) {
+            return res.status(403).json({ error: 'Canvas is locked' });
         }
 
         next();
     } catch (error) {
         console.error('Error in checkSessionLock:', error);
-        res.status(500).json({ message: 'Server error checking session lock' });
+        res.status(500).json({ message: 'Server error checking canvas lock' });
     }
 };
 
 export default checkSessionLock;
+
