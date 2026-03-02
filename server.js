@@ -8,6 +8,10 @@
 //   Client WebSocket <-> this server <-> MongoDB (Room state via Yjs binary snapshots)
 //   REST routes (auth, shapes) are mounted here but defined in src/routes/.
 
+// IMPORTANT: instrument.mjs must be the first import so Sentry is initialised
+// before any other modules are loaded.
+import "./instrument.mjs";
+
 import http from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import * as Y from "yjs";
@@ -17,7 +21,6 @@ import { encoding, decoding } from "lib0";
 import "dotenv/config";
 import connectDB from "./src/config/db.js";
 import { validatePropertyUpdate } from "./src/utils/validation.js";
-
 const PORT = process.env.PORT || 3000;
 
 await connectDB();

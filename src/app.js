@@ -5,6 +5,7 @@
 
 import express from "express";
 import cors from "cors";
+import * as Sentry from "@sentry/node";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import swaggerUi from "swagger-ui-express";
@@ -74,26 +75,40 @@ app.use("/health", healthRouter);
 
 app.get("/", (req, res) => res.send("Drawing Backend Running"));
 
+// Sentry error handler — must be registered after all controllers/routes
+// and before any other error-handling middleware.
+Sentry.setupExpressErrorHandler(app);
+
+// Fallthrough error handler: returns the Sentry event ID so clients/support
+// can reference the specific error report.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+    res.status(500).json({
+        error: err.message || "Internal Server Error",
+        sentryId: res.sentry,
+    });
+});
+
 // 404 handler - must be after all other routes
 app.use((req, res) => {
     res.status(404)
-       .type('application/json')
-       .json({ error: 'Not Found', message: 'The requested resource was not found' });
+        .type('application/json')
+        .json({ error: 'Not Found', message: 'The requested resource was not found' });
 });
 
 // Global error handler - must be last
 app.use((err, req, res) => {
     console.error(err.stack);
-    
+
     const statusCode = err.statusCode || err.status || 500;
     const message = err.message || 'Internal Server Error';
-    
+
     res.status(statusCode)
-       .type('application/json')
-       .json({
-           error: statusCode >= 500 ? 'Internal Server Error' : message,
-           message: statusCode >= 500 ? 'An unexpected error occurred' : message,
-       });
+        .type('application/json')
+        .json({
+            error: statusCode >= 500 ? 'Internal Server Error' : message,
+            message: statusCode >= 500 ? 'An unexpected error occurred' : message,
+        });
 });
 
 export default app;
