@@ -1,7 +1,7 @@
 import Canvas from "../models/Canvas.js";
 import User from "../models/User.js";
 import crypto from "node:crypto";
-
+import CanvasMembership from "../models/canvasMembership.js";
 // ─── create canvas ───
 export const createCanvas = async (req, res) => {
     try {
@@ -10,7 +10,7 @@ export const createCanvas = async (req, res) => {
         const cleanName = typeof name === 'string' ? name : "Untitled Board";
 
         const canvasId = crypto.randomUUID();
-        const ownerId = req.userId;
+        const ownerId = String(req.userId);
 
         // Fix 2: Cleaned syntax and structured query
         const canvas = await Canvas.create({
@@ -60,7 +60,7 @@ export const lockCanvas = async (req, res) => {
 
         // Fix 4: Ownership check - only the owner can lock/unlock
         const canvas = await Canvas.findOneAndUpdate(
-            { _id: id, owner: req.userId }, 
+            { _id: String(id), owner: String(req.userId) },
             { $set: { is_locked } },
             { new: true }
         );
@@ -82,50 +82,29 @@ export const lockCanvas = async (req, res) => {
 // ─── add participant ───
 export const addParticipant = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { id } = req.params; // canvas ID
         const { userId, role } = req.body;
-
-        if (!userId || typeof userId !== 'string') {
-            return res.status(400).json({ message: "Valid userId is required" });
-        }
-
         const validRoles = ["editor", "viewer"];
         const assignedRole = validRoles.includes(role) ? role : "editor";
 
-        // Fix 5: Ensure only owner can add participants
-        const canvas = await Canvas.findOne({ _id: id, owner: req.userId });
-        if (!canvas) {
-            return res.status(404).json({ message: "Canvas not found or unauthorized" });
-        }
+        // 1. Verify caller owns the canvas
+        const canvas = await Canvas.findOne({ _id: String(id), owner: String(req.userId) });
+        if (!canvas) return res.status(403).json({ message: "Unauthorized" });
 
-        const existing = canvas.participants.find(p => p.userId.toString() === userId);
-        if (existing) {
-            return res.status(409).json({ message: "User is already a participant" });
-        }
+        // 2. Verify the user being added actually exists
+        const userExists = await User.exists({ _id: String(userId) });
+        if (!userExists) return res.status(404).json({ message: "Target user not found" });
 
-        canvas.participants.push({
-            userId,
-            role: assignedRole,
-            joinedAt: new Date(),
-        });
-        await canvas.save();
+        // 3. Upsert the membership (handles both creation and updates atomically)
+        const membership = await CanvasMembership.findOneAndUpdate(
+            { canvasId: String(id), userId: String(userId) },
+            { $set: { role: assignedRole } },
+            { new: true, upsert: true } // If it doesn't exist, create it. If it does, update role.
+        );
 
-        await User.findByIdAndUpdate(userId, {
-            $push: {
-                canvases: {
-                    canvasId: id,
-                    role: assignedRole,
-                    lastAccessedAt: new Date(),
-                },
-            },
-        });
-
-        res.status(200).json({
-            canvasId: canvas._id,
-            participants: canvas.participants,
-        });
+        res.status(200).json({ message: "Participant added", membership });
     } catch (error) {
         console.error("Error adding participant:", error);
-        res.status(500).json({ message: "Server error adding participant" });
+        res.status(500).json({ message: "Server error" });
     }
 };
