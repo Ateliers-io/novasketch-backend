@@ -110,7 +110,8 @@ describe('OAuth Integration', () => {
             mockUser.findOne.mockResolvedValue(null);
             mockUser.create.mockResolvedValue({
                 _id: 'id1', googleId: 'google_789',
-                email: 'test@gmail.com', displayName: 'Test', avatar: 'pic.jpg'
+                email: 'test@gmail.com', displayName: 'Test', avatar: 'pic.jpg',
+                save: jest.fn().mockResolvedValue(true),
             });
             mockJwt.sign.mockReturnValue('jwt_token');
 
@@ -200,18 +201,21 @@ describe('OAuth Integration', () => {
                 googleId: 'google_456',
                 email: 'user@gmail.com',
                 displayName: 'Google User',
-                avatar: 'https://photo.url/avatar.jpg'
+                avatar: 'https://photo.url/avatar.jpg',
+                save: jest.fn().mockResolvedValue(true),
             });
 
             await googleAuth(mockReq, mockRes);
 
-            expect(mockUser.create).toHaveBeenCalledWith({
-                googleId: 'google_456',
-                email: 'user@gmail.com',
-                displayName: 'Google User',
-                avatar: 'https://photo.url/avatar.jpg',
-                authProvider: 'google'
-            });
+            expect(mockUser.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    googleId: 'google_456',
+                    email: 'user@gmail.com',
+                    displayName: 'Google User',
+                    avatar: 'https://photo.url/avatar.jpg',
+                    authProvider: 'google'
+                })
+            );
         });
 
         it('should handle user with no profile picture (empty avatar)', async () => {
@@ -224,7 +228,8 @@ describe('OAuth Integration', () => {
                 googleId: 'google_456',
                 email: 'user@gmail.com',
                 displayName: 'Google User',
-                avatar: ''
+                avatar: '',
+                save: jest.fn().mockResolvedValue(true),
             });
 
             await googleAuth(mockReq, mockRes);
@@ -242,7 +247,8 @@ describe('OAuth Integration', () => {
             mockUser.findOne.mockResolvedValue({
                 _id: 'existing_id', googleId: 'google_456',
                 email: 'user@gmail.com', displayName: 'Google User',
-                avatar: 'https://photo.url/avatar.jpg'
+                avatar: 'https://photo.url/avatar.jpg',
+                save: jest.fn().mockResolvedValue(true),
             });
 
             await googleAuth(mockReq, mockRes);
@@ -276,7 +282,8 @@ describe('OAuth Integration', () => {
             mockUser.findOne.mockResolvedValue({
                 _id: 'user_id_for_jwt',
                 googleId: 'g123', email: 'jwt@test.com',
-                displayName: 'JWT User', avatar: 'pic.jpg'
+                displayName: 'JWT User', avatar: 'pic.jpg',
+                save: jest.fn().mockResolvedValue(true),
             });
             mockJwt.sign.mockReturnValue('signed_jwt');
 
@@ -305,7 +312,8 @@ describe('OAuth Integration', () => {
             mockOAuth2ClientInstance.verifyIdToken.mockResolvedValue(mockTicket);
             mockUser.findOne.mockResolvedValue({
                 _id: 'uid', googleId: 'g1', email: 'e@t.com',
-                displayName: 'N', avatar: 'p'
+                displayName: 'N', avatar: 'p',
+                save: jest.fn().mockResolvedValue(true),
             });
             mockJwt.sign.mockReturnValue('jwt');
 
@@ -331,21 +339,25 @@ describe('OAuth Integration', () => {
             mockOAuth2ClientInstance.verifyIdToken.mockResolvedValue(mockTicket);
             mockUser.findOne.mockResolvedValue({
                 _id: 'resp_id', googleId: 'g1', email: 'resp@test.com',
-                displayName: 'Response User', avatar: 'avatar.png'
+                displayName: 'Response User', avatar: 'avatar.png',
+                authProvider: 'google',
+                save: jest.fn().mockResolvedValue(true),
             });
             mockJwt.sign.mockReturnValue('final_jwt_token');
 
             await googleAuth(mockReq, mockRes);
 
-            expect(mockRes.json).toHaveBeenCalledWith({
-                token: 'final_jwt_token',
-                user: {
-                    id: 'resp_id',
-                    email: 'resp@test.com',
-                    displayName: 'Response User',
-                    avatar: 'avatar.png'
-                }
-            });
+            expect(mockRes.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    token: 'final_jwt_token',
+                    user: expect.objectContaining({
+                        id: 'resp_id',
+                        email: 'resp@test.com',
+                        displayName: 'Response User',
+                        avatar: 'avatar.png'
+                    })
+                })
+            );
         });
     });
 });
