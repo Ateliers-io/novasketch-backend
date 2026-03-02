@@ -61,8 +61,6 @@ novasketch-backend/
 │   │   ├── authRoutes.test.js
 │   │   ├── sessionRoutes.test.js
 │   │   └── shapeRoutes.test.js
-│   ├── reports/
-│   │   └── test-report.html
 │   ├── unit/
 │   │   ├── .gitkeep
 │   │   ├── authController.test.js
@@ -81,7 +79,9 @@ novasketch-backend/
 ├── .gitignore
 ├── eslint.config.js
 ├── index.html
+├── instrument.mjs
 ├── jest.config.js
+├── jsconfig.json
 ├── nodemon.json
 ├── package.json
 ├── README.md
