@@ -5,6 +5,7 @@
 
 import express from "express";
 import cors from "cors";
+import * as Sentry from "@sentry/node";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger.js";
 import authRoutes from "./routes/authRoutes.js";
@@ -31,5 +32,19 @@ app.use("/api/session", sessionRoutes);
 app.use("/health", healthRouter);
 
 app.get("/", (req, res) => res.send("Drawing Backend Running"));
+
+// Sentry error handler — must be registered after all controllers/routes
+// and before any other error-handling middleware.
+Sentry.setupExpressErrorHandler(app);
+
+// Fallthrough error handler: returns the Sentry event ID so clients/support
+// can reference the specific error report.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  res.status(500).json({
+    error: err.message || "Internal Server Error",
+    sentryId: res.sentry,
+  });
+});
 
 export default app;
