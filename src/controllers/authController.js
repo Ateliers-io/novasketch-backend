@@ -74,6 +74,7 @@ export const register = async (req, res) => {
             displayName: name.trim(),
             password, // hashed by pre-save hook
             authProvider: "local",
+            lastLoginAt: new Date(),
         });
 
         const token = signToken(user);
@@ -137,6 +138,10 @@ export const login = async (req, res) => {
             return res.status(401).json({ error: "Invalid email or password" });
         }
 
+        // Bump lastLoginAt
+        user.lastLoginAt = new Date();
+        await user.save();
+
         const token = signToken(user);
         res.json({ token, user: sanitizeUser(user) });
     } catch (err) {
@@ -191,9 +196,14 @@ export const googleAuth = async (req, res) => {
                     displayName: name,
                     avatar: picture || "",
                     authProvider: "google",
+                    lastLoginAt: new Date(),
                 });
             }
         }
+
+        // Bump lastLoginAt on every Google auth
+        user.lastLoginAt = new Date();
+        await user.save();
 
         const token = signToken(user);
         res.json({ token, user: sanitizeUser(user) });
