@@ -40,18 +40,19 @@ novasketch-backend/
 │   │   └── swagger.js
 │   ├── controllers/
 │   │   ├── authController.js
-│   │   └── sessionController.js
+│   │   └── canvasController.js
 │   ├── middleware/
 │   │   ├── authMiddleware.js
 │   │   └── checkSessionLock.js
 │   ├── models/
+│   │   ├── Canvas.js
+│   │   ├── canvasMembership.js
 │   │   ├── Room.js
-│   │   ├── Session.js
 │   │   └── User.js
 │   ├── routes/
 │   │   ├── authRoutes.js
+│   │   ├── canvasRoutes.js
 │   │   ├── health.js
-│   │   ├── sessionRoutes.js
 │   │   └── shapeRoutes.js
 │   ├── utils/
 │   │   └── validation.js
@@ -146,19 +147,21 @@ pnpm start
 | `POST` | `/api/auth/google` | Authenticate via Google OAuth |
 | `GET` | `/api/auth/me` | Get current user profile |
 
+#### Canvas
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/canvas` | Create a new canvas |
+| `GET` | `/api/canvas/mine` | List all canvases for the authenticated user |
+| `GET` | `/api/canvas/{id}` | Get canvas details by ID |
+| `PATCH` | `/api/canvas/{id}/lock` | Lock or unlock a canvas |
+| `POST` | `/api/canvas/{id}/participants` | Add a participant to a canvas |
+
 #### Health
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/health` | Health check |
-
-#### Sessions
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/session` | Create a new whiteboard session |
-| `GET` | `/api/session/{id}` | Get session details by ID |
-| `PATCH` | `/api/session/{id}/lock` | Lock or unlock a session |
 
 #### Shapes
 
