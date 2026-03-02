@@ -5,9 +5,9 @@ import CanvasMembership from "../models/canvasMembership.js";
 // ─── create canvas ───
 export const createCanvas = async (req, res) => {
     try {
-        // Fix 1: Destructure only what we need and sanitize
+        // Fix 1: Destructure only what we need and sanitize using explicit string casting
         const { name } = req.body;
-        const cleanName = typeof name === 'string' ? name : "Untitled Board";
+        const cleanName = name ? name.toString() : "Untitled Board";
 
         const canvasId = crypto.randomUUID();
         const ownerId = String(req.userId);
