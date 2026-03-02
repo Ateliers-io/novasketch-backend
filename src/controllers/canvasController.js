@@ -5,22 +5,29 @@
 //
 // All write endpoints require authentication (req.userId from authMiddleware).
 
+import mongoose from "mongoose";
 import Canvas from "../models/Canvas.js";
 import User from "../models/User.js";
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 // ─── create canvas ───
 
 export const createCanvas = async (req, res) => {
     try {
-        const { name } = req.body;
         const canvasId = crypto.randomUUID();
         const ownerId = req.userId;
 
-        // Create the canvas with the authenticated user as owner
+        // Sanitize name — reject non-string input to prevent NoSQL injection.
+        // Only a plain string (or undefined/null) is accepted; objects are blocked.
+        const rawName = req.body?.name;
+        const canvasName =
+            typeof rawName === "string" && rawName.trim().length > 0
+                ? rawName.trim()
+                : "Untitled Board";
+
         const canvas = await Canvas.create({
             _id: canvasId,
-            name: name || "Untitled Board",
+            name: canvasName,
             owner: ownerId,
             participants: [
                 {
@@ -164,8 +171,13 @@ export const addParticipant = async (req, res) => {
         const { id } = req.params;
         const { userId, role } = req.body;
 
-        if (!userId) {
-            return res.status(400).json({ message: "userId is required" });
+        if (!userId || typeof userId !== "string") {
+            return res.status(400).json({ message: "userId must be a string" });
+        }
+
+        // Validate ObjectId format to prevent NoSQL injection
+        if (!mongoose.isValidObjectId(userId)) {
+            return res.status(400).json({ message: "Invalid userId format" });
         }
 
         const validRoles = ["editor", "viewer"];
