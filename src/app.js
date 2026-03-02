@@ -12,7 +12,7 @@ import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger.js";
 import authRoutes from "./routes/authRoutes.js";
 import shapeRoutes from "./routes/shapeRoutes.js";
-import sessionRoutes from "./routes/sessionRoutes.js";
+import canvasRoutes from "./routes/canvasRoutes.js";
 import healthRouter from "./routes/health.js";
 
 const app = express();
@@ -70,7 +70,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 // Routes
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/rooms", shapeRoutes);
-app.use("/api/session", sessionRoutes);
+app.use("/api/canvas", canvasRoutes);
 app.use("/health", healthRouter);
 
 app.get("/", (req, res) => res.send("Drawing Backend Running"));

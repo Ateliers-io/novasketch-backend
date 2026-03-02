@@ -27,7 +27,7 @@ await connectDB();
 
 // Room schema (defined here as it is tightly coupled to the Yjs binary format).
 import Room from "./src/models/Room.js";
-import Session from "./src/models/Session.js";
+import Canvas from "./src/models/Canvas.js";
 import app from "./src/app.js";
 
 const server = http.createServer(app);
@@ -76,14 +76,14 @@ const getOrCreateRoom = async (roomId) => {
   const roomState = { doc, clients: new Set(), isLocked: false };
   rooms.set(roomId, roomState);
 
-  // Load lock state from Session doc (if one exists for this roomId)
+  // Load lock state from Canvas doc (if one exists for this roomId)
   try {
-    const session = await Session.findById(roomId);
-    if (session) {
-      roomState.isLocked = session.is_locked;
+    const canvas = await Canvas.findById(roomId);
+    if (canvas) {
+      roomState.isLocked = canvas.is_locked;
     }
   } catch (e) {
-    console.error(`Session lock load error for ${roomId}:`, e);
+    console.error(`Canvas lock load error for ${roomId}:`, e);
   }
 
   // Restore previous state from Mongo (if any)
@@ -103,9 +103,30 @@ const getOrCreateRoom = async (roomId) => {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(async () => {
       const binaryData = Y.encodeStateAsUpdate(doc);
+
+      // Compute lightweight metadata without a full decode
+      const dataSize = binaryData.byteLength;
+      let shapeCount = 0;
       try {
-        await Room.findByIdAndUpdate(roomId, { data: Buffer.from(binaryData) }, { upsert: true });
-        console.log(`Saved room ${roomId}`);
+        const shapesMap = doc.getMap('shapes');
+        shapeCount = shapesMap.size;
+      } catch { /* shapes map may not exist yet */ }
+
+      try {
+        await Room.findByIdAndUpdate(
+          roomId,
+          {
+            data: Buffer.from(binaryData),
+            dataSize,
+            shapeCount,
+          },
+          { upsert: true }
+        );
+
+        // Bump lastEditedAt on the Canvas document
+        await Canvas.findByIdAndUpdate(roomId, { lastEditedAt: new Date() });
+
+        console.log(`Saved room ${roomId} (${dataSize} bytes, ${shapeCount} shapes)`);
       } catch (e) {
         console.error("Save Error:", e);
       }

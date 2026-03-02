@@ -49,6 +49,26 @@ const userSchema = new mongoose.Schema(
             enum: ["local", "google"],
             default: "local",
         },
+        canvases: [{
+            canvasId: {
+                type: String,
+                ref: "Canvas",
+                required: true,
+            },
+            role: {
+                type: String,
+                enum: ["owner", "editor", "viewer"],
+                default: "editor",
+            },
+            lastAccessedAt: {
+                type: Date,
+                default: Date.now,
+            },
+        }],
+        lastLoginAt: {
+            type: Date,
+            default: Date.now,
+        },
     },
     { timestamps: true } // createdAt/updatedAt for auditing
 );
