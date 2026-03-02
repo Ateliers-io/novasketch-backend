@@ -64,15 +64,15 @@ export const register = async (req, res) => {
 
     try {
         // Check for existing user (case-insensitive email match is handled by schema lowercase)
-        const exists = await User.findOne({ email: email.toLowerCase() });
+        const exists = await User.findOne({ email: String(email).toLowerCase() });
         if (exists) {
             return res.status(409).json({ error: "An account with this email already exists", field: "email" });
         }
 
         const user = await User.create({
-            email: email.toLowerCase(),
-            displayName: name.trim(),
-            password, // hashed by pre-save hook
+            email: String(email).toLowerCase(),
+            displayName: String(name).trim(),
+            password: String(password), // hashed by pre-save hook
             authProvider: "local",
             lastLoginAt: new Date(),
         });
@@ -118,7 +118,7 @@ export const login = async (req, res) => {
 
     try {
         // Explicitly select password since it's excluded by default
-        const user = await User.findOne({ email: email.toLowerCase() }).select("+password");
+        const user = await User.findOne({ email: String(email).toLowerCase() }).select("+password");
 
         if (!user) {
             // Intentionally vague to avoid user enumeration
@@ -133,7 +133,7 @@ export const login = async (req, res) => {
             });
         }
 
-        const isMatch = await user.comparePassword(password);
+        const isMatch = await user.comparePassword(String(password));
         if (!isMatch) {
             return res.status(401).json({ error: "Invalid email or password" });
         }
@@ -179,11 +179,11 @@ export const googleAuth = async (req, res) => {
         const { sub: googleId, email, name, picture } = payload;
 
         // Step 3: Upsert user (first login creates a new record, subsequent logins just looked up)
-        let user = await User.findOne({ googleId });
+        let user = await User.findOne({ googleId: String(googleId) });
 
         if (!user) {
             // Check if an email-registered user exists — link the Google account
-            user = await User.findOne({ email: email.toLowerCase() });
+            user = await User.findOne({ email: String(email).toLowerCase() });
             if (user) {
                 user.googleId = googleId;
                 user.avatar = picture || user.avatar;
@@ -191,10 +191,10 @@ export const googleAuth = async (req, res) => {
                 await user.save();
             } else {
                 user = await User.create({
-                    googleId,
-                    email,
-                    displayName: name,
-                    avatar: picture || "",
+                    googleId: String(googleId),
+                    email: String(email),
+                    displayName: String(name),
+                    avatar: picture ? String(picture) : "",
                     authProvider: "google",
                     lastLoginAt: new Date(),
                 });

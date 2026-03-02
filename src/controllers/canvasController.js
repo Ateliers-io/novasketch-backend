@@ -47,6 +47,46 @@ export const createCanvas = async (req, res) => {
     }
 };
 
+// ─── get user's canvases ───
+export const getUserCanvases = async (req, res) => {
+    try {
+        const user = await User.findById(req.userId).select("canvases");
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Fetch full canvas details for each reference
+        const canvasIds = user.canvases.map((c) => c.canvasId);
+        const canvases = await Canvas.find({ _id: { $in: canvasIds } })
+            .populate("owner", "displayName avatar")
+            .select("name owner is_locked lastEditedAt createdAt")
+            .sort({ lastEditedAt: -1 });
+
+        // Merge role from user's canvases array
+        const result = canvases.map((canvas) => {
+            const userRef = user.canvases.find(
+                (c) => c.canvasId === canvas._id
+            );
+            return {
+                canvasId: canvas._id,
+                name: canvas.name,
+                owner: canvas.owner,
+                role: userRef?.role || "editor",
+                is_locked: canvas.is_locked,
+                lastEditedAt: canvas.lastEditedAt,
+                lastAccessedAt: userRef?.lastAccessedAt,
+                createdAt: canvas.createdAt,
+            };
+        });
+
+        res.status(200).json({ canvases: result });
+    } catch (error) {
+        console.error("Error fetching user canvases:", error);
+        res.status(500).json({ message: "Server error fetching canvases" });
+    }
+};
+
 // ─── lock / unlock canvas ───
 export const lockCanvas = async (req, res) => {
     try {
@@ -106,5 +146,34 @@ export const addParticipant = async (req, res) => {
     } catch (error) {
         console.error("Error adding participant:", error);
         res.status(500).json({ message: "Server error" });
+    }
+};
+
+// ─── get canvas ───
+export const getCanvas = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const canvas = await Canvas.findById(String(id)).populate(
+            "owner",
+            "displayName email avatar"
+        );
+
+        if (!canvas) {
+            return res.status(404).json({ message: "Canvas not found" });
+        }
+
+        res.status(200).json({
+            canvasId: canvas._id,
+            name: canvas.name,
+            owner: canvas.owner,
+            participants: canvas.participants,
+            is_locked: canvas.is_locked,
+            sync_status: canvas.sync_status,
+            lastEditedAt: canvas.lastEditedAt,
+            createdAt: canvas.createdAt,
+        });
+    } catch (error) {
+        console.error("Error fetching canvas:", error);
+        res.status(500).json({ message: "Server error fetching canvas" });
     }
 };
