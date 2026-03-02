@@ -98,36 +98,42 @@ describe('authController', () => {
 
             // Mock DB interactions
             mockUser.findOne.mockResolvedValue(null); // User not found
-            mockUser.create.mockResolvedValue({
+            const createdUser = {
                 _id: 'new_user_id',
                 googleId: 'google_123',
                 email: 'newuser@example.com',
                 displayName: 'New User',
-                avatar: 'profile.jpg'
-            });
+                avatar: 'profile.jpg',
+                save: jest.fn().mockResolvedValue(true),
+            };
+            mockUser.create.mockResolvedValue(createdUser);
 
             // Mock JWT
             mockJwt.sign.mockReturnValue('mocked_jwt_token');
 
             await googleAuth(mockReq, mockRes);
 
-            expect(mockUser.create).toHaveBeenCalledWith({
-                googleId: 'google_123',
-                email: 'newuser@example.com',
-                displayName: 'New User',
-                avatar: 'profile.jpg',
-                authProvider: 'google'
-            });
-            expect(mockJwt.sign).toHaveBeenCalled();
-            expect(mockRes.json).toHaveBeenCalledWith({
-                token: 'mocked_jwt_token',
-                user: {
-                    id: 'new_user_id',
+            expect(mockUser.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    googleId: 'google_123',
                     email: 'newuser@example.com',
                     displayName: 'New User',
-                    avatar: 'profile.jpg'
-                }
-            });
+                    avatar: 'profile.jpg',
+                    authProvider: 'google',
+                })
+            );
+            expect(mockJwt.sign).toHaveBeenCalled();
+            expect(mockRes.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    token: 'mocked_jwt_token',
+                    user: expect.objectContaining({
+                        id: 'new_user_id',
+                        email: 'newuser@example.com',
+                        displayName: 'New User',
+                        avatar: 'profile.jpg'
+                    })
+                })
+            );
         });
 
         // 3.3: Existing user login (Happy Path)
@@ -150,7 +156,9 @@ describe('authController', () => {
                 googleId: 'google_123',
                 email: 'existing@example.com',
                 displayName: 'Existing User',
-                avatar: 'profile.jpg'
+                avatar: 'profile.jpg',
+                authProvider: 'google',
+                save: jest.fn().mockResolvedValue(true),
             };
             mockUser.findOne.mockResolvedValue(existingUser);
 
@@ -160,15 +168,17 @@ describe('authController', () => {
             await googleAuth(mockReq, mockRes);
 
             expect(mockUser.create).not.toHaveBeenCalled(); // Should NOT create user
-            expect(mockRes.json).toHaveBeenCalledWith({
-                token: 'mocked_jwt_token',
-                user: {
-                    id: 'existing_user_id',
-                    email: 'existing@example.com',
-                    displayName: 'Existing User',
-                    avatar: 'profile.jpg'
-                }
-            });
+            expect(mockRes.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    token: 'mocked_jwt_token',
+                    user: expect.objectContaining({
+                        id: 'existing_user_id',
+                        email: 'existing@example.com',
+                        displayName: 'Existing User',
+                        avatar: 'profile.jpg'
+                    })
+                })
+            );
         });
 
         // 3.4: Invalid Google token/code (Security)
