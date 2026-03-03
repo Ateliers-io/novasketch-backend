@@ -1,7 +1,8 @@
 // redisPersistenceService.js - Periodic sync from Redis shape cache to MongoDB.
 //
-// Tracks "dirty" canvases and periodically flushes their Redis state to the 
-// Room collection in MongoDB to ensure long-term persistence.
+// Tracks "dirty" canvases (updated since last sync) and periodically
+// flushes their Redis state to the Room collection in MongoDB.
+// This ensures long-term persistence without blocking the fast path.
 //
 // Used by: server.js (start on boot, stop on shutdown)
 
@@ -11,7 +12,6 @@ import Canvas from "../models/Canvas.js";
 
 // Set of canvas IDs that have been modified since the last sync
 const dirtyCanvases = new Set();
-
 let syncInterval = null;
 
 /**
@@ -97,7 +97,7 @@ export const startPeriodicSync = (intervalMs = 30000) => {
 
 /**
  * Stop the periodic sync loop.
- * Called during server shutdown or in test teardown.
+ * Call during server shutdown or in test teardown.
  */
 export const stopPeriodicSync = () => {
     if (syncInterval) {
