@@ -63,7 +63,7 @@ function buildApiSection() {
 
     for (const [path, methods] of Object.entries(paths)) {
         for (const [method, detail] of Object.entries(methods)) {
-            const tag = (detail.tags && detail.tags[0]) || 'Other';
+            const tag = detail.tags?.[0] || 'Other';
             if (!groups[tag]) groups[tag] = [];
             groups[tag].push({
                 method: method.toUpperCase(),
