@@ -5,9 +5,9 @@
 //
 // Usage: node scripts/swagger-export.js
 
-import { writeFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { writeFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import swaggerSpec from '../src/config/swagger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
