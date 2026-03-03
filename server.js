@@ -22,7 +22,7 @@ import "dotenv/config";
 import connectDB from "./src/config/db.js";
 import { validatePropertyUpdate } from "./src/utils/validation.js";
 import { pubClient, subClient } from "./src/config/redis.js";
-import { saveShape } from "./src/services/redisCanvasService.js";
+import { saveShape, getCanvasShapes } from "./src/services/redisCanvasService.js";
 const PORT = process.env.PORT || 3000;
 
 await connectDB();
@@ -244,6 +244,7 @@ const getOrCreateRoom = async (roomId) => {
 //   2 = Ephemeral broadcast (drag positions - not persisted)
 //   3 = Property updates (resize/rotate - validated then rebroadcast)
 //   4 = presence event (user join/leave)
+//   5 = Redis cached state (shape snapshot for fast initial load)
 wss.on("connection", async (ws, req) => {
   const urlObj = new URL(req.url, "http://localhost");
   const roomId = urlObj.pathname.slice(1) || "default-room";
@@ -275,6 +276,20 @@ wss.on("connection", async (ws, req) => {
     members,
     count: members.length,
   })));
+
+  // Send cached shapes from Redis for an immediate view before full Yjs sync.
+  // This is a fast-path so joining clients see content instantly.
+  try {
+    const cachedShapes = await getCanvasShapes(roomId);
+    if (Object.keys(cachedShapes).length > 0) {
+      const cacheEncoder = encoding.createEncoder();
+      encoding.writeVarUint(cacheEncoder, 5);
+      encoding.writeVarString(cacheEncoder, JSON.stringify(cachedShapes));
+      ws.send(encoding.toUint8Array(cacheEncoder));
+    }
+  } catch (err) {
+    console.error(`[Redis] Failed to send cached shapes for ${roomId}:`, err.message);
+  }
 
   // Send the full Yjs state so the new client can catch up
   const encoder = encoding.createEncoder();
