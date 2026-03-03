@@ -37,6 +37,7 @@ novasketch-backend/
 ├── src/
 │   ├── config/
 │   │   ├── db.js
+│   │   ├── redis.js
 │   │   └── swagger.js
 │   ├── controllers/
 │   │   ├── authController.js
@@ -54,6 +55,9 @@ novasketch-backend/
 │   │   ├── canvasRoutes.js
 │   │   ├── health.js
 │   │   └── shapeRoutes.js
+│   ├── services/
+│   │   ├── redisCanvasService.js
+│   │   └── redisPersistenceService.js
 │   ├── utils/
 │   │   └── validation.js
 │   └── app.js
@@ -72,11 +76,14 @@ novasketch-backend/
 │   │   ├── networkOptimization.test.js
 │   │   ├── oauthIntegration.test.js
 │   │   ├── presenceEvents.test.js
+│   │   ├── redisCanvasService.test.js
+│   │   ├── redisPersistenceService.test.js
 │   │   ├── Room.test.js
 │   │   └── User.test.js
 │   ├── utils/
 │   │   └── db_handler.js
 │   └── setup.js
+├── .env.example
 ├── .gitignore
 ├── eslint.config.js
 ├── index.html
