@@ -3,10 +3,6 @@
  */
 
 import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-
-let mongoServer;
 
 // Mock dependencies
 const mockHgetall = jest.fn();
@@ -110,12 +106,8 @@ describe('redisPersistenceService', () => {
 
             startPeriodicSync(1000);
 
-            // Fast forward 1 second
-            jest.advanceTimersByTime(1000);
-
-            // Wait for async interval callback to resolve
-            await Promise.resolve();
-            await Promise.resolve();
+            // Fast forward 1 second and await async tasks
+            await jest.advanceTimersByTimeAsync(1000);
 
             expect(mockHgetall).toHaveBeenCalledTimes(2);
             expect(mockHgetall).toHaveBeenCalledWith('canvas:c1:shapes');
@@ -123,8 +115,7 @@ describe('redisPersistenceService', () => {
 
             jest.clearAllMocks();
             // Fast forward again - should not sync since they were cleared
-            jest.advanceTimersByTime(1000);
-            await Promise.resolve();
+            await jest.advanceTimersByTimeAsync(1000);
 
             expect(mockHgetall).not.toHaveBeenCalled();
         });
