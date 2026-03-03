@@ -148,7 +148,7 @@ describe('Auth Routes Integration Verification', () => {
         let token;
 
         beforeEach(async () => {
-            const user = await User.create({
+            await User.create({
                 displayName: 'Session User',
                 email: 'session@example.com',
                 password: 'Password123!',
