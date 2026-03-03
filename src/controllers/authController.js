@@ -16,6 +16,24 @@ const client = new OAuth2Client(
 
 // ─── helpers ───
 
+// Sanitizes Google display names so they pass DISPLAY_NAME_REGEX validation.
+// Google names can contain dots, accented chars, etc. that our schema rejects.
+const sanitizeDisplayName = (name) => {
+    if (!name || typeof name !== 'string') return '';
+    let sanitized = name
+        .trim()
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')   // strip accents
+        .replace(/[^a-zA-Z0-9\s\-_]/g, '') // remove unsupported chars (dots, etc.)
+        .replace(/\s+/g, ' ')              // collapse whitespace
+        .trim();
+    // Ensure it starts with a letter
+    const match = /[a-zA-Z]/.exec(sanitized);
+    if (match) sanitized = sanitized.slice(match.index);
+    sanitized = sanitized.slice(0, 30).trim();
+    return sanitized.length >= 2 ? sanitized : 'Google User';
+};
+
 const signToken = (user) =>
     jwt.sign(
         { userId: user._id, email: user.email },
@@ -193,7 +211,7 @@ export const googleAuth = async (req, res) => {
                 user = await User.create({
                     googleId: String(googleId),
                     email: String(email),
-                    displayName: String(name),
+                    displayName: sanitizeDisplayName(name),
                     avatar: picture ? String(picture) : "",
                     authProvider: "google",
                     lastLoginAt: new Date(),
@@ -201,7 +219,11 @@ export const googleAuth = async (req, res) => {
             }
         }
 
-        // Bump lastLoginAt on every Google auth
+        // Bump lastLoginAt on every Google auth; also fix legacy display names that
+        // predate the current DISPLAY_NAME_REGEX (e.g. names with dots from Google).
+        if (user.displayName && !/^[a-zA-Z][a-zA-Z0-9 _-]{1,29}$/.test(user.displayName)) {
+            user.displayName = sanitizeDisplayName(name || user.displayName);
+        }
         user.lastLoginAt = new Date();
         await user.save();
 
