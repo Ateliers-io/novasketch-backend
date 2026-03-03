@@ -299,11 +299,6 @@ describe('User Story 3.4: Network Optimization', () => {
                 const doc = new Y.Doc();
                 const shapes = doc.getMap('shapes');
 
-                const updates = [];
-                doc.on('update', (update) => {
-                    updates.push(update);
-                });
-
                 // Multiple rapid operations
                 shapes.set('s1', { data: 1 });
                 shapes.set('s2', { data: 2 });
