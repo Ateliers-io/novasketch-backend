@@ -8,9 +8,9 @@
 //
 // Usage: node scripts/generate-readme.js
 
-import { readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
-import { resolve, dirname, relative } from 'path';
-import { fileURLToPath } from 'url';
+import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
+import { resolve, dirname, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import swaggerSpec from '../src/config/swagger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

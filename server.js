@@ -12,7 +12,7 @@
 // before any other modules are loaded.
 import "./instrument.mjs";
 
-import http from "http";
+import http from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import * as Y from "yjs";
 import * as syncProtocol from "y-protocols/sync";
