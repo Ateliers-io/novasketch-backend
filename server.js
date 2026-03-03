@@ -50,7 +50,7 @@ const broadcastLocal = (roomId, message, excludeClient = null) => {
   if (!room) return;
 
   room.clients.forEach(client => {
-    if (client !== excludeClient && client.readyState === WebSocket.OPEN) {
+    if (client !== excludeClient && client?.readyState === WebSocket.OPEN) {
       client.send(message);
     }
   });
@@ -155,7 +155,7 @@ const getOrCreateRoom = async (roomId) => {
   // Restore previous state from Mongo (if any)
   try {
     const existingRoom = await Room.findById(roomId);
-    if (existingRoom && existingRoom.data && existingRoom.data.length > 0) {
+    if (existingRoom?.data?.length > 0) {
       Y.applyUpdate(doc, new Uint8Array(existingRoom.data));
       console.log(`Loaded ${existingRoom.data.length} bytes for ${roomId}`);
     }
