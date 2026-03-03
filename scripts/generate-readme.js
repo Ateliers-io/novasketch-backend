@@ -20,9 +20,9 @@ const README_PATH = resolve(ROOT, 'README.md');
 // ─── Build directory tree ───
 
 function buildTree(dir, prefix = '', isRoot = true) {
-    const IGNORE = ['node_modules', '.git', 'coverage', '.env', 'swagger.json', 'pnpm-lock.yaml'];
+    const IGNORE = new Set(['node_modules', '.git', 'coverage', '.env', 'swagger.json', 'pnpm-lock.yaml']);
     const entries = readdirSync(dir)
-        .filter(name => !IGNORE.includes(name))
+        .filter(name => !IGNORE.has(name))
         .sort((a, b) => {
             // Directories first, then files
             const aIsDir = statSync(resolve(dir, a)).isDirectory();
