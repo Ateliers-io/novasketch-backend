@@ -330,8 +330,9 @@ describe('User Story 3.3: Concurrent Editing (Conflict Resolution)', () => {
             const shapes = doc.getMap('shapes');
 
             shapes.set('duplicate-id', { version: 1 });
-            shapes.set('duplicate-id', { version: 2 }); // Same ID, different data
+            expect(shapes.get('duplicate-id').version).toBe(1); // Verify initial state
 
+            shapes.set('duplicate-id', { version: 2 }); // Overwrite
             expect(shapes.size).toBe(1);
             expect(shapes.get('duplicate-id').version).toBe(2);
         });
