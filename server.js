@@ -21,6 +21,7 @@ import { encoding, decoding } from "lib0";
 import "dotenv/config";
 import connectDB from "./src/config/db.js";
 import { validatePropertyUpdate } from "./src/utils/validation.js";
+import { pubClient, subClient } from "./src/config/redis.js";
 const PORT = process.env.PORT || 3000;
 
 await connectDB();
@@ -33,14 +34,17 @@ import app from "./src/app.js";
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
+// Unique ID to tag Pub/Sub messages so the publishing node 
+// doesn't echo them back to its own local clients.
+const serverId = crypto.randomUUID();
+
 // In-memory room registry. Keyed by room ID.
 // Map<RoomID, { doc: Y.Doc, clients: Set<WebSocket> }>
 // Each entry holds the Yjs doc and connected client set.
 const rooms = new Map();
 
-// Broadcasts a binary message to every client in a room.
-// Used for both Yjs sync and our custom messages.
-const broadcastToRoom = (roomId, message, excludeClient = null) => {
+// Broadcasts a binary message to every LOCAL client in a room.
+const broadcastLocal = (roomId, message, excludeClient = null) => {
   const room = rooms.get(roomId);
   if (!room) return;
 
@@ -50,6 +54,58 @@ const broadcastToRoom = (roomId, message, excludeClient = null) => {
     }
   });
 };
+
+// Publishes a message to the Redis Pub/Sub channel
+const publishToChannel = (roomId, message) => {
+  try {
+    const payload = JSON.stringify({
+      serverId,
+      roomId,
+      // Convert binary message to base64 for safe JSON serialisation
+      data: Buffer.from(message).toString('base64'),
+    });
+    pubClient.publish(`room:${roomId}`, payload);
+  } catch (err) {
+    console.error(`[Redis Pub] Failed to publish to room:${roomId}:`, err.message);
+  }
+};
+
+// Broadcasts to local clients and publishes to Redis for other nodes.
+// Set `crossNode` to false for messages that should stay local-only
+// (e.g. initial sync to a single joining client).
+const broadcastToRoom = (roomId, message, excludeClient = null, crossNode = true) => {
+  broadcastLocal(roomId, message, excludeClient);
+  if (crossNode) {
+    publishToChannel(roomId, message);
+  }
+};
+
+// ---- Redis Subscription Handler ----
+// Listen for messages published by other server instances and relay
+// them to local clients in the matching room.
+subClient.on('message', (channel, raw) => {
+  try {
+    const { serverId: sourceId, roomId, data } = JSON.parse(raw);
+
+    if (sourceId === serverId) return;
+
+    const room = rooms.get(roomId);
+    if (!room) return;
+
+    const message = Buffer.from(data, 'base64');
+    room.clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  } catch (err) {
+    console.error('[Redis Sub] Error handling message:', err.message);
+  }
+});
+
+subClient.on('error', (err) => {
+  console.error('[Redis Sub] Subscription error:', err.message);
+});
 
 const buildPresenceMessage = (jsonStr) => {
   const encoder = encoding.createEncoder();
@@ -75,6 +131,15 @@ const getOrCreateRoom = async (roomId) => {
 
   const roomState = { doc, clients: new Set(), isLocked: false };
   rooms.set(roomId, roomState);
+
+  // Subscribe to the Redis Pub/Sub channel for this room so messages
+  // from other server instances are relayed to local clients.
+  try {
+    await subClient.subscribe(`room:${roomId}`);
+    console.log(`[Redis Sub] Subscribed to room:${roomId}`);
+  } catch (err) {
+    console.error(`[Redis Sub] Failed to subscribe to room:${roomId}:`, err.message);
+  }
 
   // Load lock state from Canvas doc (if one exists for this roomId)
   try {
@@ -304,6 +369,17 @@ wss.on("connection", async (ws, req) => {
     broadcastToRoom(roomId, buildPresenceMessage(leavePayload));
 
     console.log(`[${roomId}] ${ws.meta?.name} left (${room.clients.size} remaining)`);
+
+    // Clean up when last client leaves: unsubscribe from Redis, remove room
+    if (room.clients.size === 0) {
+      rooms.delete(roomId);
+      try {
+        subClient.unsubscribe(`room:${roomId}`);
+        console.log(`[Redis Sub] Unsubscribed from room:${roomId}`);
+      } catch (err) {
+        console.error(`[Redis Sub] Failed to unsubscribe from room:${roomId}:`, err.message);
+      }
+    }
   });
 });
 
