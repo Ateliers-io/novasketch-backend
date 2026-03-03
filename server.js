@@ -22,6 +22,7 @@ import "dotenv/config";
 import connectDB from "./src/config/db.js";
 import { validatePropertyUpdate } from "./src/utils/validation.js";
 import { pubClient, subClient } from "./src/config/redis.js";
+import { saveShape } from "./src/services/redisCanvasService.js";
 const PORT = process.env.PORT || 3000;
 
 await connectDB();
@@ -202,6 +203,16 @@ const getOrCreateRoom = async (roomId) => {
   // 'origin' is the WS that sent the update.
   doc.on('update', (update, origin) => {
     saveToDB();
+
+    // Cache individual shapes to Redis for fast retrieval
+    try {
+      const shapesMap = doc.getMap('shapes');
+      for (const [shapeId, shapeData] of shapesMap.entries()) {
+        saveShape(roomId, shapeId, shapeData).catch(err =>
+          console.error(`[Redis] Shape cache error for ${shapeId}:`, err.message)
+        );
+      }
+    } catch { /* shapes map may not exist yet */ }
 
     // Broadcast to clients
     if (origin !== null) { // origin null means loaded from DB
