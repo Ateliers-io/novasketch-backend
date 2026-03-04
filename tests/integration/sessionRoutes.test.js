@@ -7,6 +7,7 @@
 import { jest } from '@jest/globals';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
+import crypto from 'node:crypto';
 import { connect, closeDatabase, clearDatabase } from '../utils/db_handler.js';
 import Canvas from '../../src/models/Canvas.js';
 import User from '../../src/models/User.js';
@@ -44,7 +45,7 @@ describe('Canvas Routes Integration', () => {
 
         // Seed a canvas for tests that need one
         const canvas = await Canvas.create({
-            _id: 'test-canvas-001',
+            _id: crypto.randomUUID(),
             name: 'Test Board',
             owner: testUser._id,
             participants: [{ userId: testUser._id, role: 'owner' }],
