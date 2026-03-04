@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import Room from '../../src/models/Room.js';
 import { connect, closeDatabase, clearDatabase } from '../utils/db_handler.js';
 import * as Y from 'yjs';
+import crypto from 'node:crypto';
 
 // Connect to test DB
 beforeAll(async () => await connect());
@@ -25,13 +26,14 @@ describe('Shape Routes Integration Test', () => {
         shapes.set('rect1', { type: 'rectangle', x: 10, y: 10 });
         const update = Y.encodeStateAsUpdate(doc);
 
-        const room = new Room({ _id: 'room-1', data: Buffer.from(update) });
+        const roomId = crypto.randomUUID();
+        const room = new Room({ _id: roomId, data: Buffer.from(update) });
         await room.save();
 
-        const res = await request(app).get('/api/rooms/room-1/shapes');
+        const res = await request(app).get(`/api/rooms/${roomId}/shapes`);
 
         expect(res.statusCode).toBe(200);
-        expect(res.body.roomId).toBe('room-1');
+        expect(res.body.roomId).toBe(roomId);
         expect(res.body.count).toBe(1);
         expect(res.body.shapes).toHaveLength(1);
         expect(res.body.shapes[0].id).toBe('rect1');
@@ -45,10 +47,11 @@ describe('Shape Routes Integration Test', () => {
         shapes.set('circle1', { type: 'circle', r: 50 });
         const update = Y.encodeStateAsUpdate(doc);
 
-        const room = new Room({ _id: 'room-2', data: Buffer.from(update) });
+        const roomId = crypto.randomUUID();
+        const room = new Room({ _id: roomId, data: Buffer.from(update) });
         await room.save();
 
-        const res = await request(app).get('/api/rooms/room-2/shape/circle1');
+        const res = await request(app).get(`/api/rooms/${roomId}/shape/circle1`);
 
         expect(res.statusCode).toBe(200);
         expect(res.body.id).toBe('circle1');
@@ -60,10 +63,11 @@ describe('Shape Routes Integration Test', () => {
         // Seed DB
         const doc = new Y.Doc();
         const update = Y.encodeStateAsUpdate(doc);
-        const room = new Room({ _id: 'room-3', data: Buffer.from(update) });
+        const roomId = crypto.randomUUID();
+        const room = new Room({ _id: roomId, data: Buffer.from(update) });
         await room.save();
 
-        const res = await request(app).get('/api/rooms/room-3/shape/missing-shape');
+        const res = await request(app).get(`/api/rooms/${roomId}/shape/missing-shape`);
 
         expect(res.statusCode).toBe(404);
         expect(res.body.error).toBe('Shape not found');
