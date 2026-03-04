@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Room from '../../src/models/Room.js';
 import { connect, closeDatabase, clearDatabase } from '../utils/db_handler.js';
 import * as Y from 'yjs';
+import crypto from 'node:crypto';
 
 beforeAll(async () => await connect());
 afterEach(async () => await clearDatabase());
@@ -14,14 +15,15 @@ describe('Room Model Test', () => {
         shapes.set('shape1', { type: 'rect', x: 10, y: 20 });
         const update = Y.encodeStateAsUpdate(doc);
 
+        const roomId = crypto.randomUUID();
         const roomData = {
-            _id: 'room-123',
+            _id: roomId,
             data: Buffer.from(update)
         };
         const validRoom = new Room(roomData);
         const savedRoom = await validRoom.save();
 
-        expect(savedRoom._id).toBe('room-123');
+        expect(savedRoom._id).toBe(roomId);
         expect(savedRoom.data).toBeInstanceOf(Buffer);
         expect(savedRoom.data.length).toBeGreaterThan(0);
     });
@@ -32,10 +34,11 @@ describe('Room Model Test', () => {
         shapes.set('shape2', { type: 'circle', r: 5 });
         const update = Y.encodeStateAsUpdate(doc);
 
-        const room = new Room({ _id: 'room-456', data: Buffer.from(update) });
+        const roomId = crypto.randomUUID();
+        const room = new Room({ _id: roomId, data: Buffer.from(update) });
         await room.save();
 
-        const foundRoom = await Room.findById('room-456');
+        const foundRoom = await Room.findById(roomId);
         expect(foundRoom).toBeDefined();
 
         const loadedDoc = new Y.Doc();
