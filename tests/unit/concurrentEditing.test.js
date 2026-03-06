@@ -303,6 +303,85 @@ describe('User Story 3.3: Concurrent Editing (Conflict Resolution)', () => {
                 expect(result.valid).toBe(false);
             });
         });
+
+        // Group (parentId / childrenIds) validation
+        describe('Group (parentId / childrenIds) validation', () => {
+            it('should accept valid parentId (string)', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'shape-1',
+                    type: 'group',
+                    properties: { parentId: 'frame-abc' }
+                });
+                expect(result.valid).toBe(true);
+            });
+
+            it('should accept parentId: null (ungroup)', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'shape-1',
+                    type: 'group',
+                    properties: { parentId: null }
+                });
+                expect(result.valid).toBe(true);
+            });
+
+            it('should accept valid childrenIds (array of strings)', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'frame-1',
+                    type: 'group',
+                    properties: { childrenIds: ['shape-a', 'shape-b'] }
+                });
+                expect(result.valid).toBe(true);
+            });
+
+            it('should accept both parentId and childrenIds together', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'frame-1',
+                    type: 'group',
+                    properties: { parentId: 'frame-root', childrenIds: ['shape-a'] }
+                });
+                expect(result.valid).toBe(true);
+            });
+
+            it('should reject group with neither parentId nor childrenIds', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'shape-1',
+                    type: 'group',
+                    properties: { someOther: 'value' }
+                });
+                expect(result.valid).toBe(false);
+                expect(result.error).toContain('parentId');
+            });
+
+            it('should reject parentId that is a number', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'shape-1',
+                    type: 'group',
+                    properties: { parentId: 42 }
+                });
+                expect(result.valid).toBe(false);
+                expect(result.error).toContain('parentId');
+            });
+
+            it('should reject childrenIds that is not an array', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'frame-1',
+                    type: 'group',
+                    properties: { childrenIds: 'shape-a' }
+                });
+                expect(result.valid).toBe(false);
+                expect(result.error).toContain('childrenIds');
+            });
+
+            it('should reject childrenIds containing a non-string entry', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'frame-1',
+                    type: 'group',
+                    properties: { childrenIds: ['shape-a', 123] }
+                });
+                expect(result.valid).toBe(false);
+                expect(result.error).toContain('childrenIds');
+            });
+        });
     });
 
     // =========================================================================
