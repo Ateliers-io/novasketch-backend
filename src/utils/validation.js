@@ -43,5 +43,28 @@ export const validatePropertyUpdate = (data) => {
         }
     }
 
+    if (data.type === 'group') {
+        const { parentId, childrenIds } = data.properties;
+        const hasParentId = parentId !== undefined;
+        const hasChildrenIds = childrenIds !== undefined;
+
+        if (!hasParentId && !hasChildrenIds) {
+            return { valid: false, error: 'Group must include parentId or childrenIds' };
+        }
+
+        if (hasParentId && parentId !== null && typeof parentId !== 'string') {
+            return { valid: false, error: 'parentId must be a string or null' };
+        }
+
+        if (hasChildrenIds) {
+            if (!Array.isArray(childrenIds)) {
+                return { valid: false, error: 'childrenIds must be an array' };
+            }
+            if (childrenIds.some(id => typeof id !== 'string')) {
+                return { valid: false, error: 'Every childrenIds entry must be a string' };
+            }
+        }
+    }
+
     return { valid: true };
 };
