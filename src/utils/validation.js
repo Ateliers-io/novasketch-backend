@@ -16,7 +16,7 @@ export const validatePropertyUpdate = (data) => {
     }
 
     // Only allow known changes - don't relay arbitrary payloads
-    const allowedTypes = ['resize', 'rotate', 'move'];
+    const allowedTypes = ['resize', 'rotate', 'move', 'group'];
     if (!data.type || !allowedTypes.includes(data.type)) {
         return { valid: false, error: `Invalid type: ${data.type}. Expected one of: ${allowedTypes.join(', ')}` };
     }
