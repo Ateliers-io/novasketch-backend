@@ -382,6 +382,104 @@ describe('User Story 3.3: Concurrent Editing (Conflict Resolution)', () => {
                 expect(result.error).toContain('childrenIds');
             });
         });
+
+        // Frame Meta (ownerId, assignedUserIds, name) validation
+        describe('Frame Meta (ownerId, assignedUserIds, name) validation', () => {
+            it('should accept valid name only', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'frame-1',
+                    type: 'frame_meta',
+                    properties: { name: 'New Frame Name' }
+                });
+                expect(result.valid).toBe(true);
+            });
+
+            it('should accept valid ownerId only', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'frame-1',
+                    type: 'frame_meta',
+                    properties: { ownerId: 'user-123' }
+                });
+                expect(result.valid).toBe(true);
+            });
+
+            it('should accept ownerId: null', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'frame-1',
+                    type: 'frame_meta',
+                    properties: { ownerId: null }
+                });
+                expect(result.valid).toBe(true);
+            });
+
+            it('should accept valid assignedUserIds only', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'frame-1',
+                    type: 'frame_meta',
+                    properties: { assignedUserIds: ['user-1', 'user-2'] }
+                });
+                expect(result.valid).toBe(true);
+            });
+
+            it('should accept all fields together', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'frame-1',
+                    type: 'frame_meta',
+                    properties: { name: 'My Frame', ownerId: 'user-1', assignedUserIds: ['user-2'] }
+                });
+                expect(result.valid).toBe(true);
+            });
+
+            it('should reject when name, ownerId, and assignedUserIds are all missing', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'frame-1',
+                    type: 'frame_meta',
+                    properties: { someOtherField: 'value' }
+                });
+                expect(result.valid).toBe(false);
+                expect(result.error).toContain('Frame meta update must include');
+            });
+
+            it('should reject invalid name type', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'frame-1',
+                    type: 'frame_meta',
+                    properties: { name: 123 }
+                });
+                expect(result.valid).toBe(false);
+                expect(result.error).toContain('name must be a string');
+            });
+
+            it('should reject invalid ownerId type', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'frame-1',
+                    type: 'frame_meta',
+                    properties: { ownerId: 456 }
+                });
+                expect(result.valid).toBe(false);
+                expect(result.error).toContain('ownerId must be a string or null');
+            });
+
+            it('should reject invalid assignedUserIds type', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'frame-1',
+                    type: 'frame_meta',
+                    properties: { assignedUserIds: 'user-1' }
+                });
+                expect(result.valid).toBe(false);
+                expect(result.error).toContain('assignedUserIds must be an array');
+            });
+
+            it('should reject assignedUserIds containing non-strings', () => {
+                const result = validatePropertyUpdate({
+                    objectId: 'frame-1',
+                    type: 'frame_meta',
+                    properties: { assignedUserIds: ['user-1', 42] }
+                });
+                expect(result.valid).toBe(false);
+                expect(result.error).toContain('Every assignedUserIds entry must be a string');
+            });
+        });
     });
 
     // =========================================================================
