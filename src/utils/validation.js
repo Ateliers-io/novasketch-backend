@@ -6,7 +6,7 @@
 //
 // Used by: server.js (case 3 in the WS message handler)
 
-const ALLOWED_TYPES = ['resize', 'rotate', 'move', 'group'];
+const ALLOWED_TYPES = ['resize', 'rotate', 'move', 'group', 'frame_meta'];
 
 const isNumeric = (value) => value !== undefined && typeof value === 'number';
 
@@ -50,10 +50,41 @@ const validateGroup = (properties) => {
     return null;
 };
 
+const validateFrameMeta = (properties) => {
+    const { name, ownerId, assignedUserIds } = properties;
+    const hasName = name !== undefined;
+    const hasOwnerId = ownerId !== undefined;
+    const hasAssignedUserIds = assignedUserIds !== undefined;
+
+    if (!hasName && !hasOwnerId && !hasAssignedUserIds) {
+        return { valid: false, error: 'Frame meta update must include name, ownerId, or assignedUserIds' };
+    }
+
+    if (hasName && typeof name !== 'string') {
+        return { valid: false, error: 'name must be a string' };
+    }
+
+    if (hasOwnerId && ownerId !== null && typeof ownerId !== 'string') {
+        return { valid: false, error: 'ownerId must be a string or null' };
+    }
+
+    if (hasAssignedUserIds) {
+        if (!Array.isArray(assignedUserIds)) {
+            return { valid: false, error: 'assignedUserIds must be an array' };
+        }
+        if (assignedUserIds.some(id => typeof id !== 'string')) {
+            return { valid: false, error: 'Every assignedUserIds entry must be a string' };
+        }
+    }
+
+    return null;
+};
+
 const TYPE_VALIDATORS = {
     resize: validateResize,
     rotate: validateRotate,
     group: validateGroup,
+    frame_meta: validateFrameMeta,
 };
 
 export const validatePropertyUpdate = (data) => {
