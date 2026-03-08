@@ -178,3 +178,52 @@ export const getCanvas = async (req, res) => {
         res.status(500).json({ message: "Server error fetching canvas" });
     }
 };
+
+// ─── auto-join canvas ───
+export const joinCanvas = async (req, res) => {
+    try {
+        const { id } = req.params; // canvas ID
+        const userId = req.userId; // from JWT middleware
+
+        const canvas = await Canvas.findById(String(id));
+        if (!canvas) return res.status(404).json({ message: "Canvas not found" });
+
+        // If the owner is joining their own board, just return success
+        if (canvas.owner.toString() === userId) {
+            return res.status(200).json({ message: "Joined as owner" });
+        }
+
+        // Upsert CanvasMembership (viewer role by default for auto-joins)
+        await CanvasMembership.findOneAndUpdate(
+            { canvasId: String(id), userId: String(userId) },
+            { $setOnInsert: { role: "editor" }, $set: { lastAccessedAt: new Date() } },
+            { new: true, upsert: true }
+        );
+
+        // Add to Canvas participants array if not already present
+        const isParticipant = canvas.participants.some(p => p.userId.toString() === userId);
+        if (!isParticipant) {
+            await Canvas.findByIdAndUpdate(String(id), {
+                $push: { participants: { userId, role: "editor", joinedAt: new Date() } }
+            });
+        }
+
+        // Add to User's canvases tracking array if not already present
+        const user = await User.findById(userId);
+        if (user) {
+            const hasCanvas = user.canvases.some(c => c.canvasId === String(id));
+            if (!hasCanvas) {
+                user.canvases.push({ canvasId: String(id), role: "editor", lastAccessedAt: new Date() });
+            } else {
+                const canvasRef = user.canvases.find(c => c.canvasId === String(id));
+                if (canvasRef) canvasRef.lastAccessedAt = new Date();
+            }
+            await user.save();
+        }
+
+        res.status(200).json({ message: "Joined canvas successfully" });
+    } catch (error) {
+        console.error("Error auto-joining canvas:", error);
+        res.status(500).json({ message: "Server error joining canvas" });
+    }
+};
