@@ -1,12 +1,6 @@
 /**
  * Regression Tests (Authentication)
  *
- * Covers Steps 4–7 from the regression plan:
- *   Step 4: Registration edge cases
- *   Step 5: Login edge cases
- *   Step 6: Google OAuth regression
- *   Step 7: JWT / getMe regression
- *
  * Pattern: Integration tests via supertest against a real MongoDB test DB.
  * Google OAuth library is mocked (ESM mock pattern matching authRoutes.test.js).
  */
