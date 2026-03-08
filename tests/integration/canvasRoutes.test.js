@@ -78,7 +78,7 @@ describe('Canvas Routes Integration', () => {
         });
 
         it('should return 404 for an unknown canvas id', async () => {
-            const res = await request(app).get('/api/canvas/non-existent-id');
+            const res = await request(app).get(`/api/canvas/${crypto.randomUUID()}`);
 
             expect(res.statusCode).toBe(404);
         });
@@ -142,7 +142,7 @@ describe('Canvas Routes Integration', () => {
 
         it('should return 404 for an unknown canvas id', async () => {
             const res = await request(app)
-                .patch('/api/canvas/non-existent-id/lock')
+                .patch(`/api/canvas/${crypto.randomUUID()}/lock`)
                 .set('Authorization', `Bearer ${authToken}`)
                 .send({ is_locked: true });
 
@@ -236,7 +236,7 @@ describe('Canvas Routes Integration', () => {
 
         it('should return 404 if the canvas does not exist', async () => {
             const res = await request(app)
-                .post(`/api/canvas/${new mongoose.Types.ObjectId()}/join`)
+                .post(`/api/canvas/${crypto.randomUUID()}/join`)
                 .set('Authorization', `Bearer ${authToken}`);
 
             expect(res.statusCode).toBe(404);
@@ -393,7 +393,7 @@ describe('Canvas Routes Integration', () => {
 
         it('should return 404 for an unknown canvas id', async () => {
             const res = await request(app)
-                .delete(`/api/canvas/${new mongoose.Types.ObjectId()}`)
+                .delete(`/api/canvas/${crypto.randomUUID()}`)
                 .set('Authorization', `Bearer ${authToken}`);
 
             expect(res.statusCode).toBe(404);
