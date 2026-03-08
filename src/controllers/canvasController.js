@@ -145,8 +145,8 @@ export const addParticipant = async (req, res) => {
 
         res.status(200).json({ message: "Participant added", membership });
     } catch (error) {
-        console.error("Error adding participant:", error);
-        res.status(500).json({ message: "Server error" });
+        console.error("Add participant error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };
 
@@ -176,6 +176,64 @@ export const getCanvas = async (req, res) => {
     } catch (error) {
         console.error("Error fetching canvas:", error);
         res.status(500).json({ message: "Server error fetching canvas" });
+    }
+};
+
+// ─── update canvas name ───
+export const updateCanvasName = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name } = req.body;
+
+        if (!name) {
+            return res.status(400).json({ message: "name is required" });
+        }
+
+        const canvas = await Canvas.findOne({ canvasId: id });
+        if (!canvas) {
+            return res.status(404).json({ message: "Canvas not found" });
+        }
+
+        // Verify ownership or edit rights if you want to restrict rename
+        if (canvas.owner.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: "Not authorized to rename this canvas" });
+        }
+
+        canvas.name = name;
+        await canvas.save();
+
+        res.status(200).json({ message: "Canvas renamed", name: canvas.name });
+    } catch (error) {
+        console.error("Update canvas name error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+
+// ─── delete canvas ───
+export const deleteCanvas = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const canvas = await Canvas.findById(id);
+
+        if (!canvas) {
+            return res.status(404).json({ message: "Canvas not found" });
+        }
+
+        // Ensure only owner can delete
+        if (canvas.owner.toString() !== req.user.id) {
+            return res.status(403).json({ message: "Only the owner can delete a canvas" });
+        }
+
+        // Delete all memberships for this canvas
+        await CanvasMembership.deleteMany({ canvasId: id });
+
+        // Delete the canvas itself
+        await canvas.deleteOne();
+
+        res.status(200).json({ message: "Canvas deleted successfully" });
+    } catch (error) {
+        console.error("Delete canvas error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };
 
