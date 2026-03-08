@@ -256,7 +256,7 @@ describe('canvasController', () => {
                 name: 'Old Name',
                 save: jest.fn().mockResolvedValue(true)
             };
-            mockCanvas.findOne.mockResolvedValue(canvasMock);
+            mockCanvas.findById.mockResolvedValue(canvasMock);
 
             await updateCanvasName(mockReq, mockRes);
 
@@ -278,7 +278,7 @@ describe('canvasController', () => {
     describe('deleteCanvas', () => {
         it('should delete canvas and memberships if caller is owner', async () => {
             mockReq.params = { id: 'canvas-1' };
-            mockReq.user = { id: 'test_user_id' };
+            mockReq.userId = 'test_user_id';
 
             const canvasMock = {
                 _id: 'canvas-1',
@@ -297,7 +297,7 @@ describe('canvasController', () => {
 
         it('should return 403 if non-owner tries to delete', async () => {
             mockReq.params = { id: 'canvas-1' };
-            mockReq.user = { id: 'not_owner_id' };
+            mockReq.userId = 'not_owner_id';
 
             const canvasMock = {
                 _id: 'canvas-1',
