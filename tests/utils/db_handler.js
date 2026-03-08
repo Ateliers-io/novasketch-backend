@@ -1,20 +1,32 @@
 import mongoose from 'mongoose';
+import crypto from 'node:crypto';
+
+// Each Jest worker gets a fresh module registry, so this UUID is generated
+// once per test file, giving every parallel suite its own isolated database.
+// Parallel suites can therefore never read or stomp each other's data.
+const DB_ID = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+
+// Build a unique connection URI for this test-file worker.
+const getTestUri = () => {
+    const base = process.env.MONGO_URI;
+    if (!base) throw new Error('MONGO_URI is not set - check your .env file');
+    const url = new URL(base);
+    url.pathname = `/novasketch-test-${DB_ID}`;
+    return url.toString();
+};
 
 export const clearDatabase = async () => {
     const collections = mongoose.connection.collections;
     for (const key in collections) {
-        const collection = collections[key];
-        await collection.deleteMany();
+        await collections[key].deleteMany({});
     }
 };
 
 export const connect = async () => {
-    const uri = process.env.MONGO_URI;
     if (mongoose.connection.readyState === 0) {
-        await mongoose.connect(uri);
+        await mongoose.connect(getTestUri());
     }
-    // Defensive cleanup: ensure a clean slate even if a prior test run's
-    // afterAll/dropDatabase didn't fully complete.
+    // Clean slate: remove any leftover data from a prior interrupted run.
     await clearDatabase();
 };
 
