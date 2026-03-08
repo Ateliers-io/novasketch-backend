@@ -11,6 +11,8 @@ import {
     lockCanvas,
     addParticipant,
     joinCanvas,
+    updateCanvasName,
+    deleteCanvas,
 } from "../controllers/canvasController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -141,6 +143,44 @@ router.get("/:id", getCanvas);
 
 /**
  * @swagger
+ * /api/canvas/{id}/name:
+ *   patch:
+ *     summary: Update a canvas name
+ *     tags: [Canvas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Updated Board Name
+ *     responses:
+ *       200:
+ *         description: Name updated
+ *       400:
+ *         description: name is required
+ *       403:
+ *         description: Not authorized
+ *       404:
+ *         description: Canvas not found
+ */
+router.patch("/:id/name", protect, updateCanvasName);
+
+/**
+ * @swagger
  * /api/canvas/{id}/lock:
  *   patch:
  *     summary: Lock or unlock a canvas
@@ -240,5 +280,30 @@ router.post("/:id/participants", protect, addParticipant);
  *         description: Canvas not found
  */
 router.post("/:id/join", protect, joinCanvas);
+
+/**
+ * @swagger
+ * /api/canvas/{id}:
+ *   delete:
+ *     summary: Delete a canvas
+ *     tags: [Canvas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Canvas deleted successfully
+ *       403:
+ *         description: Not authorized (only owner can delete)
+ *       404:
+ *         description: Canvas not found
+ */
+router.delete("/:id", protect, deleteCanvas);
 
 export default router;
