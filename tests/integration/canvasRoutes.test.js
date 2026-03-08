@@ -242,4 +242,61 @@ describe('Canvas Routes Integration', () => {
             expect(res.statusCode).toBe(404);
         });
     });
+    describe('POST /api/canvas/:id/participants', () => {
+        it('should add a participant to the canvas successfully', async () => {
+            const newParticipant = await User.create({
+                email: 'participant@example.com',
+                displayName: 'New Participant',
+                authProvider: 'local',
+                password: 'TestPass123!',
+            });
+
+            const res = await request(app)
+                .post(`/api/canvas/${canvasId}/participants`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ userId: newParticipant._id, role: 'viewer' });
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.message).toBe('Participant added');
+
+            const membership = await mongoose.model('CanvasMembership').findOne({
+                canvasId: canvasId,
+                userId: newParticipant._id
+            });
+            expect(membership).toBeTruthy();
+            expect(membership.role).toBe('viewer');
+        });
+
+        it('should return 403 if the user adding the participant is not the owner', async () => {
+            const notOwner = await User.create({
+                email: 'notowner@example.com',
+                displayName: 'Not Owner',
+                authProvider: 'local',
+                password: 'TestPass123!',
+            });
+            const notOwnerToken = jwt.sign(
+                { userId: notOwner._id, email: notOwner.email },
+                process.env.JWT_SECRET,
+                { expiresIn: '1h' }
+            );
+
+            const res = await request(app)
+                .post(`/api/canvas/${canvasId}/participants`)
+                .set('Authorization', `Bearer ${notOwnerToken}`)
+                .send({ userId: new mongoose.Types.ObjectId(), role: 'editor' });
+
+            expect(res.statusCode).toBe(403);
+            expect(res.body.message).toBe('Unauthorized');
+        });
+
+        it('should return 404 if the target user to add does not exist', async () => {
+            const res = await request(app)
+                .post(`/api/canvas/${canvasId}/participants`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ userId: new mongoose.Types.ObjectId(), role: 'editor' });
+
+            expect(res.statusCode).toBe(404);
+            expect(res.body.message).toBe('Target user not found');
+        });
+    });
 });
