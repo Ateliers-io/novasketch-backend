@@ -189,13 +189,13 @@ export const updateCanvasName = async (req, res) => {
             return res.status(400).json({ message: "name is required" });
         }
 
-        const canvas = await Canvas.findOne({ canvasId: id });
+        const canvas = await Canvas.findById(String(id));
         if (!canvas) {
             return res.status(404).json({ message: "Canvas not found" });
         }
 
         // Verify ownership or edit rights if you want to restrict rename
-        if (canvas.owner.toString() !== req.user._id.toString()) {
+        if (canvas.owner.toString() !== String(req.userId)) {
             return res.status(403).json({ message: "Not authorized to rename this canvas" });
         }
 
@@ -220,7 +220,7 @@ export const deleteCanvas = async (req, res) => {
         }
 
         // Ensure only owner can delete
-        if (canvas.owner.toString() !== req.user.id) {
+        if (canvas.owner.toString() !== String(req.userId)) {
             return res.status(403).json({ message: "Only the owner can delete a canvas" });
         }
 
