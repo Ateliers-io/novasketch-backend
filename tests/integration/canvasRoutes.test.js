@@ -299,4 +299,104 @@ describe('Canvas Routes Integration', () => {
             expect(res.body.message).toBe('Target user not found');
         });
     });
+    describe('PATCH /api/canvas/:id/name', () => {
+        it('should update the canvas name successfully', async () => {
+            const res = await request(app)
+                .patch(`/api/canvas/${canvasId}/name`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ name: 'Renamed Test Board' });
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.message).toBe('Canvas renamed');
+            expect(res.body.name).toBe('Renamed Test Board');
+
+            const updatedCanvas = await Canvas.findById(canvasId);
+            expect(updatedCanvas.name).toBe('Renamed Test Board');
+        });
+
+        it('should return 400 if name is missing', async () => {
+            const res = await request(app)
+                .patch(`/api/canvas/${canvasId}/name`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({});
+
+            expect(res.statusCode).toBe(400);
+            expect(res.body.message).toBe('name is required');
+        });
+
+        it('should return 403 if user is not authorized to rename', async () => {
+            const notOwner = await User.create({
+                email: 'notowner_rename@example.com',
+                displayName: 'Not Owner Rename',
+                authProvider: 'local',
+                password: 'TestPass123!',
+            });
+            const notOwnerToken = jwt.sign(
+                { userId: notOwner._id, email: notOwner.email },
+                process.env.JWT_SECRET,
+                { expiresIn: '1h' }
+            );
+
+            const res = await request(app)
+                .patch(`/api/canvas/${canvasId}/name`)
+                .set('Authorization', `Bearer ${notOwnerToken}`)
+                .send({ name: 'Hacked Board Name' });
+
+            expect(res.statusCode).toBe(403);
+            expect(res.body.message).toBe('Not authorized to rename this canvas');
+        });
+    });
+
+    describe('DELETE /api/canvas/:id', () => {
+        it('should delete canvas and its memberships successfully when owner requests', async () => {
+            // Pre-seed a membership to ensure it gets deleted
+            await mongoose.model('CanvasMembership').create({
+                canvasId: canvasId,
+                userId: testUser._id,
+                role: 'owner'
+            });
+
+            const res = await request(app)
+                .delete(`/api/canvas/${canvasId}`)
+                .set('Authorization', `Bearer ${authToken}`);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.message).toBe('Canvas deleted successfully');
+
+            const deletedCanvas = await Canvas.findById(canvasId);
+            expect(deletedCanvas).toBeNull();
+
+            const remainingMemberships = await mongoose.model('CanvasMembership').find({ canvasId });
+            expect(remainingMemberships.length).toBe(0);
+        });
+
+        it('should return 403 when non-owner tries to delete the canvas', async () => {
+            const notOwner = await User.create({
+                email: 'notowner_delete@example.com',
+                displayName: 'Not Owner Delete',
+                authProvider: 'local',
+                password: 'TestPass123!',
+            });
+            const notOwnerToken = jwt.sign(
+                { userId: notOwner._id, email: notOwner.email },
+                process.env.JWT_SECRET,
+                { expiresIn: '1h' }
+            );
+
+            const res = await request(app)
+                .delete(`/api/canvas/${canvasId}`)
+                .set('Authorization', `Bearer ${notOwnerToken}`);
+
+            expect(res.statusCode).toBe(403);
+            expect(res.body.message).toBe('Only the owner can delete a canvas');
+        });
+
+        it('should return 404 for an unknown canvas id', async () => {
+            const res = await request(app)
+                .delete(`/api/canvas/${new mongoose.Types.ObjectId()}`)
+                .set('Authorization', `Bearer ${authToken}`);
+
+            expect(res.statusCode).toBe(404);
+        });
+    });
 });
