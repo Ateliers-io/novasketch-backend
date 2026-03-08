@@ -450,7 +450,7 @@ describe('User Story 3.4: Network Optimization', () => {
             // Create large payload (1000 position updates)
             const largePayload = [];
             for (let i = 0; i < 1000; i++) {
-                largePayload.push({ id: `obj-${i}`, x: Math.random() * 1000, y: Math.random() * 1000 });
+                largePayload.push({ id: `obj-${i}`, x: (i * 13) % 1000, y: (i * 29) % 1000 });
             }
 
             const payloadBytes = new TextEncoder().encode(JSON.stringify(largePayload));
