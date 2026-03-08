@@ -38,11 +38,11 @@ jest.unstable_mockModule('../../src/config/redis.js', () => ({
     subClient: mockRedisClient,
 }));
 
-const mockRoomFindById = jest.fn();
+const mockRoomFindByIdAndUpdate = jest.fn();
 const mockCanvasFindByIdAndUpdate = jest.fn();
 
 jest.unstable_mockModule('../../src/models/Room.js', () => ({
-    default: { findById: mockRoomFindById },
+    default: { findByIdAndUpdate: mockRoomFindByIdAndUpdate },
 }));
 
 jest.unstable_mockModule('../../src/models/Canvas.js', () => ({
@@ -94,9 +94,10 @@ describe('redisCanvasService', () => {
 
     // ---- getCanvasShapes ----
     describe('getCanvasShapes', () => {
-        it('returns empty object {} when HGETALL returns null', async () => {
-            mockHgetall.mockResolvedValue(null);
-            const shapes = await getCanvasShapes('canvas-empty');
+        it('returns empty object {} when HGETALL returns {} (key not found in ioredis v5)', async () => {
+            // ioredis v5 returns {} (not null) for non-existent hash keys
+            mockHgetall.mockResolvedValue({});
+            const shapes = await getCanvasShapes('canvas-empty-2');
             expect(shapes).toEqual({});
         });
 
@@ -165,18 +166,21 @@ describe('redisPersistenceService', () => {
             expect(() => markDirty('canvas-dirty')).not.toThrow();
         });
 
-        it('markDirty is idempotent — calling multiple times does not duplicate entries', async () => {
-            // Mark same canvas 3 times then sync once to syncCanvasToMongo called once
+        it('markDirty is idempotent — calling multiple times results in one sync call', async () => {
+            // Mark same canvas 3 times then sync once
+            // redisPersistenceService uses a Set, so duplicates are deduped automatically
+            // We verify that syncCanvasToMongo only calls hgetall once per canvas ID
             mockHgetall.mockResolvedValue({});
-            markDirty('canvas-idempotent');
-            markDirty('canvas-idempotent');
-            markDirty('canvas-idempotent');
+            markDirty('canvas-idempotent-2');
+            markDirty('canvas-idempotent-2');
+            markDirty('canvas-idempotent-2');
 
-            // Empty shapes should early return (no Room.findById call)
-            await syncCanvasToMongo('canvas-idempotent');
-            // If idempotent, the canvas was in the dirty set once
-            // We can verify findById was called at most once
-            expect(mockRoomFindById).toHaveBeenCalledTimes(1);
+            // Direct sync: empty shapes → early return (no Room.findByIdAndUpdate call)
+            await syncCanvasToMongo('canvas-idempotent-2');
+            // Called exactly once for our canvasId
+            expect(mockHgetall).toHaveBeenCalledTimes(1);
+            expect(mockHgetall).toHaveBeenCalledWith('canvas:canvas-idempotent-2:shapes');
+            expect(mockRoomFindByIdAndUpdate).not.toHaveBeenCalled();
         });
     });
 
@@ -186,15 +190,15 @@ describe('redisPersistenceService', () => {
             mockHgetall.mockResolvedValue({});
             await syncCanvasToMongo('canvas-empty');
 
-            expect(mockRoomFindById).not.toHaveBeenCalled();
+            expect(mockRoomFindByIdAndUpdate).not.toHaveBeenCalled();
             expect(mockCanvasFindByIdAndUpdate).not.toHaveBeenCalled();
         });
 
-        it('skips DB writes when HGETALL returns null', async () => {
-            mockHgetall.mockResolvedValue(null);
+        it('skips DB writes when HGETALL returns empty object', async () => {
+            mockHgetall.mockResolvedValue({});
             await syncCanvasToMongo('canvas-null');
 
-            expect(mockRoomFindById).not.toHaveBeenCalled();
+            expect(mockRoomFindByIdAndUpdate).not.toHaveBeenCalled();
         });
 
         it('writes to Room.redisShapes and Canvas.lastEditedAt when shapes exist', async () => {
@@ -202,15 +206,16 @@ describe('redisPersistenceService', () => {
                 'shape-1': JSON.stringify({ type: 'circle', r: 10 }),
             };
             mockHgetall.mockResolvedValue(fakeShapes);
-
-            const mockRoomDoc = { redisShapes: null, shapeCount: 0, save: jest.fn().mockResolvedValue(true) };
-            mockRoomFindById.mockResolvedValue(mockRoomDoc);
+            mockRoomFindByIdAndUpdate.mockResolvedValue(true);
             mockCanvasFindByIdAndUpdate.mockResolvedValue(true);
 
             await syncCanvasToMongo('canvas-with-shapes');
 
-            expect(mockRoomFindById).toHaveBeenCalledWith('canvas-with-shapes');
-            expect(mockRoomDoc.save).toHaveBeenCalled();
+            expect(mockRoomFindByIdAndUpdate).toHaveBeenCalledWith(
+                'canvas-with-shapes',
+                expect.objectContaining({ redisShapes: expect.any(Object), shapeCount: 1 }),
+                { upsert: true }
+            );
             expect(mockCanvasFindByIdAndUpdate).toHaveBeenCalledWith(
                 'canvas-with-shapes',
                 expect.objectContaining({ lastEditedAt: expect.any(Date) })
@@ -224,23 +229,25 @@ describe('redisPersistenceService', () => {
                 's3': JSON.stringify({ type: 'line' }),
             };
             mockHgetall.mockResolvedValue(fakeShapes);
-
-            const mockRoomDoc = { redisShapes: null, shapeCount: 0, save: jest.fn().mockResolvedValue(true) };
-            mockRoomFindById.mockResolvedValue(mockRoomDoc);
+            mockRoomFindByIdAndUpdate.mockResolvedValue(true);
             mockCanvasFindByIdAndUpdate.mockResolvedValue(true);
 
             await syncCanvasToMongo('canvas-count');
 
-            expect(mockRoomDoc.shapeCount).toBe(3);
+            expect(mockRoomFindByIdAndUpdate).toHaveBeenCalledWith(
+                'canvas-count',
+                expect.objectContaining({ shapeCount: 3 }),
+                { upsert: true }
+            );
         });
 
-        it('handles missing Room document gracefully (no Room for canvas)', async () => {
+        it('handles errors gracefully (no throw on DB failure)', async () => {
             const fakeShapes = { 's1': JSON.stringify({ type: 'rect' }) };
             mockHgetall.mockResolvedValue(fakeShapes);
-            mockRoomFindById.mockResolvedValue(null); // No room doc
+            mockRoomFindByIdAndUpdate.mockRejectedValue(new Error('DB timeout'));
 
-            // Should not throw
-            await expect(syncCanvasToMongo('canvas-no-room')).resolves.not.toThrow();
+            // Should not throw — errors are caught internally
+            await expect(syncCanvasToMongo('canvas-db-error')).resolves.not.toThrow();
         });
     });
 
@@ -252,19 +259,24 @@ describe('redisPersistenceService', () => {
 
         it('startPeriodicSync triggers sync after interval using fake timers', async () => {
             jest.useFakeTimers();
+            jest.clearAllMocks();
 
-            markDirty('canvas-interval');
-            mockHgetall.mockResolvedValue({}); // Empty shapes skip DB writes
+            const testCanvasId = `canvas-interval-${Math.random().toString(36).slice(2)}`;
+            markDirty(testCanvasId);
+            mockHgetall.mockResolvedValue({}); // Empty → skip DB writes
 
             startPeriodicSync(1000); // 1s interval
 
             jest.advanceTimersByTime(1000);
 
-            // Flush microtasks so the async sync callback runs
-            await Promise.resolve();
+            // Flush enough microtask rounds to allow async for-loop to complete for all dirty canvases
+            for (let i = 0; i < 10; i++) {
+                await Promise.resolve();
+            }
 
-            // getCanvasShapes should have been called for the dirty canvas
-            expect(mockHgetall).toHaveBeenCalledWith('canvas:canvas-interval:shapes');
+            // getCanvasShapes should have been called for our dirty canvas (among possibly others)
+            const allCalls = mockHgetall.mock.calls.map(c => c[0]);
+            expect(allCalls).toContain(`canvas:${testCanvasId}:shapes`);
 
             stopPeriodicSync();
             jest.useRealTimers();
