@@ -10,6 +10,7 @@ import {
     getUserCanvases,
     lockCanvas,
     addParticipant,
+    joinCanvas,
 } from "../controllers/canvasController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -216,5 +217,28 @@ router.patch("/:id/lock", protect, lockCanvas);
  *         description: User is already a participant
  */
 router.post("/:id/participants", protect, addParticipant);
+
+/**
+ * @swagger
+ * /api/canvas/{id}/join:
+ *   post:
+ *     summary: Auto-join a canvas when opening a shared link
+ *     tags: [Canvas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Canvas joined successfully
+ *       404:
+ *         description: Canvas not found
+ */
+router.post("/:id/join", protect, joinCanvas);
 
 export default router;
