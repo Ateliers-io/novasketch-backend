@@ -28,12 +28,12 @@ describe('Cross-user access control', () => {
             .send({ name: 'User A Canvas' });
 
         expect(res.statusCode).toBe(201);
-        canvasId = res.body.canvas._id;
+        canvasId = res.body.canvasId;
     });
 
     it('User B cannot rename User A\'s canvas (403)', async () => {
         const res = await request(app)
-            .patch(`/api/canvas/${canvasId}/rename`)
+            .patch(`/api/canvas/${canvasId}/name`)
             .set(getAuthHeaders(userB.token))
             .send({ name: 'Stolen Name' });
 
@@ -44,7 +44,8 @@ describe('Cross-user access control', () => {
         // lockCanvas uses findOneAndUpdate({_id, owner}) to find the canvas. non-owner gets 404
         const res = await request(app)
             .patch(`/api/canvas/${canvasId}/lock`)
-            .set(getAuthHeaders(userB.token));
+            .set(getAuthHeaders(userB.token))
+            .send({ is_locked: true });
 
         // The combined findOneAndUpdate({_id, owner}) returns 404 for non-owners
         expect(res.statusCode).toBe(404);
@@ -70,18 +71,18 @@ describe('Cross-user access control', () => {
     it('User A can still rename their own canvas after User B\'s attempt', async () => {
         // User B's unauthorized rename attempt
         await request(app)
-            .patch(`/api/canvas/${canvasId}/rename`)
+            .patch(`/api/canvas/${canvasId}/name`)
             .set(getAuthHeaders(userB.token))
             .send({ name: 'Stolen Name' });
 
         // User A's rename succeeds
         const res = await request(app)
-            .patch(`/api/canvas/${canvasId}/rename`)
+            .patch(`/api/canvas/${canvasId}/name`)
             .set(getAuthHeaders(userA.token))
             .send({ name: 'Legit New Name' });
 
         expect(res.statusCode).toBe(200);
-        expect(res.body.canvas.name).toBe('Legit New Name');
+        expect(res.body.name).toBe('Legit New Name');
     });
 
     it('User B can join User A\'s canvas (as editor)', async () => {
@@ -94,8 +95,8 @@ describe('Cross-user access control', () => {
 
     it('Unauthenticated user gets 401 on all canvas endpoints', async () => {
         const endpoints = [
-            () => request(app).patch(`/api/canvas/${canvasId}/rename`).send({ name: 'x' }),
-            () => request(app).patch(`/api/canvas/${canvasId}/lock`),
+            () => request(app).patch(`/api/canvas/${canvasId}/name`).send({ name: 'x' }),
+            () => request(app).patch(`/api/canvas/${canvasId}/lock`).send({ is_locked: true }),
             () => request(app).delete(`/api/canvas/${canvasId}`),
             () => request(app).post(`/api/canvas/${canvasId}/join`),
             () => request(app).post(`/api/canvas/${canvasId}/participants`).send({ userId: 'x' }),
@@ -110,7 +111,7 @@ describe('Cross-user access control', () => {
     it('Forged/invalid JWT is rejected with 401', async () => {
         const fakeToken = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJmYWtlIn0.INVALID_SIGNATURE';
         const res = await request(app)
-            .patch(`/api/canvas/${canvasId}/rename`)
+            .patch(`/api/canvas/${canvasId}/name`)
             .set('Authorization', fakeToken)
             .send({ name: 'Hacked' });
 
@@ -184,7 +185,7 @@ describe('Injection safety - canvas name', () => {
 
         if (res.statusCode === 201) {
             // If accepted, the raw string is returned and the client is responsible for escaping
-            expect(typeof res.body.canvas.name).toBe('string');
+            expect(typeof res.body.name).toBe('string');
         }
     });
 
@@ -203,9 +204,10 @@ describe('Injection safety - canvas name', () => {
         // Create canvas first
         const createRes = await request(app)
             .post('/api/canvas')
-            .set(getAuthHeaders(token));
+            .set(getAuthHeaders(token))
+            .send({ name: 'XSS Test Board' });
         expect(createRes.statusCode).toBe(201);
-        const canvasId = createRes.body.canvas._id;
+        const canvasId = createRes.body.canvasId;
 
         // Attempt to rename with XSS payload
         const xssPayload = '<img src=x onerror=alert(1)>';
@@ -221,8 +223,9 @@ describe('Injection safety - canvas name', () => {
     it('rejects rename with name exceeding 100 characters', async () => {
         const createRes = await request(app)
             .post('/api/canvas')
-            .set(getAuthHeaders(token));
-        const canvasId = createRes.body.canvas._id;
+            .set(getAuthHeaders(token))
+            .send({ name: 'Rename Max Board' });
+        const canvasId = createRes.body.canvasId;
 
         const longName = 'B'.repeat(101);
         const res = await request(app)
