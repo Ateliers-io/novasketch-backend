@@ -17,6 +17,11 @@ import { encoding, decoding } from 'lib0';
 
 /**
  * Connect a WebSocket client to a test server room.
+ *
+ * All received messages are stored in ws._msgQueue (a Buffer[]) so that
+ * waitForMessage() can replay already-received messages and never miss a
+ * message that arrived before a handler was registered.
+ *
  * @param {string} serverUrl – base URL, e.g. 'ws://localhost:3456'
  * @param {string} roomId
  * @param {{ name?: string, clientId?: string }} [meta]
@@ -31,6 +36,35 @@ export const createWSClient = (serverUrl, roomId, meta = {}) => {
 
     return new Promise((resolve, reject) => {
         const ws = new WebSocket(url);
+        ws._msgQueue = [];          // buffered messages not yet consumed
+        ws._msgWaiters = [];        // pending { typeFilter, resolve, reject, timer }
+
+        ws.on('message', (data) => {
+            const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
+
+            // Check if any pending waiter can consume this message
+            for (let i = 0; i < ws._msgWaiters.length; i++) {
+                const waiter = ws._msgWaiters[i];
+                if (waiter.typeFilter === null) {
+                    ws._msgWaiters.splice(i, 1);
+                    clearTimeout(waiter.timer);
+                    waiter.resolve(buf);
+                    return;
+                }
+                const decoder = decoding.createDecoder(new Uint8Array(buf));
+                const msgType = decoding.readVarUint(decoder);
+                if (msgType === waiter.typeFilter) {
+                    ws._msgWaiters.splice(i, 1);
+                    clearTimeout(waiter.timer);
+                    waiter.resolve(buf);
+                    return;
+                }
+            }
+
+            // No pending waiter matched — buffer the message
+            ws._msgQueue.push(buf);
+        });
+
         ws.on('open', () => resolve(ws));
         ws.on('error', reject);
     });
@@ -38,6 +72,8 @@ export const createWSClient = (serverUrl, roomId, meta = {}) => {
 
 /**
  * Wait for the next message from a WebSocket whose first type byte matches.
+ * Checks the message queue first (for messages that arrived early), then
+ * registers a waiter for future messages.
  * Rejects after timeoutMs if no matching message arrives.
  * @param {WebSocket} ws
  * @param {number|null} typeFilter - match on this type byte; null = accept any
@@ -45,36 +81,36 @@ export const createWSClient = (serverUrl, roomId, meta = {}) => {
  * @returns {Promise<Buffer>}
  */
 export const waitForMessage = (ws, typeFilter = null, timeoutMs = 3000) => {
+    // First, check the already-buffered queue
+    for (let i = 0; i < ws._msgQueue.length; i++) {
+        const buf = ws._msgQueue[i];
+        if (typeFilter === null) {
+            ws._msgQueue.splice(i, 1);
+            return Promise.resolve(buf);
+        }
+        const decoder = decoding.createDecoder(new Uint8Array(buf));
+        const msgType = decoding.readVarUint(decoder);
+        if (msgType === typeFilter) {
+            ws._msgQueue.splice(i, 1);
+            return Promise.resolve(buf);
+        }
+    }
+
+    // Not in queue — register a waiter for future messages
     return new Promise((resolve, reject) => {
-        const timer = setTimeout(
-            () => reject(new Error(`WS message timeout${typeFilter !== null ? ` (type ${typeFilter})` : ''}`)),
-            timeoutMs
-        );
+        const timer = setTimeout(() => {
+            const idx = ws._msgWaiters.findIndex(w => w.resolve === resolve);
+            if (idx !== -1) ws._msgWaiters.splice(idx, 1);
+            reject(new Error(`WS message timeout${typeFilter !== null ? ` (type ${typeFilter})` : ''}`));
+        }, timeoutMs);
 
-        const handler = (data) => {
-            const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
-            if (typeFilter === null) {
-                clearTimeout(timer);
-                ws.off('message', handler);
-                resolve(buf);
-                return;
-            }
-            const decoder = decoding.createDecoder(new Uint8Array(buf));
-            const msgType = decoding.readVarUint(decoder);
-            if (msgType === typeFilter) {
-                clearTimeout(timer);
-                ws.off('message', handler);
-                resolve(buf);
-            }
-        };
-
-        ws.on('message', handler);
+        ws._msgWaiters.push({ typeFilter, resolve, reject, timer });
     });
 };
 
 /**
  * Collect all messages of a given type received within a window (ms).
- * Useful for asserting broadcast counts.
+ * Drains the existing queue first, then listens for new messages.
  * @param {WebSocket} ws
  * @param {number|null} typeFilter
  * @param {number} [windowMs=400]
@@ -83,6 +119,22 @@ export const waitForMessage = (ws, typeFilter = null, timeoutMs = 3000) => {
 export const collectMessages = (ws, typeFilter, windowMs = 400) => {
     return new Promise((resolve) => {
         const collected = [];
+
+        // Drain matching messages already in the queue
+        ws._msgQueue = ws._msgQueue.filter((buf) => {
+            if (typeFilter === null) {
+                collected.push(buf);
+                return false; // remove from queue
+            }
+            const decoder = decoding.createDecoder(new Uint8Array(buf));
+            const msgType = decoding.readVarUint(decoder);
+            if (msgType === typeFilter) {
+                collected.push(buf);
+                return false; // remove from queue
+            }
+            return true; // keep in queue
+        });
+
         const handler = (data) => {
             const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
             if (typeFilter === null) {
