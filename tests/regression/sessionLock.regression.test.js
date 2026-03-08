@@ -22,7 +22,7 @@ const { default: checkSessionLock } = await import('../../src/middleware/checkSe
 // Helpers: minimal Express req/res/next stubs
 // -------------------------------------------
 function makeReq(canvasId = 'canvas-uuid-123') {
-    return { params: { canvasId } };
+    return { params: { id: canvasId } };
 }
 
 function makeRes() {
