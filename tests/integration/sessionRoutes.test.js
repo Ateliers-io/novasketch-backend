@@ -9,6 +9,7 @@ import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import crypto from 'node:crypto';
 import { connect, closeDatabase, clearDatabase } from '../utils/db_handler.js';
+import mongoose from 'mongoose';
 import Canvas from '../../src/models/Canvas.js';
 import User from '../../src/models/User.js';
 
@@ -150,7 +151,7 @@ describe('Canvas Routes Integration', () => {
     });
 
     describe('GET /api/canvas/mine', () => {
-        it('should return the user\'s canvases', async () => {
+        it('should return the user\'s canvases with isCollab: false for solo boards', async () => {
             const res = await request(app)
                 .get('/api/canvas/mine')
                 .set('Authorization', `Bearer ${authToken}`);
@@ -160,6 +161,22 @@ describe('Canvas Routes Integration', () => {
             expect(res.body.canvases).toHaveLength(1);
             expect(res.body.canvases[0]).toHaveProperty('canvasId', canvasId);
             expect(res.body.canvases[0]).toHaveProperty('role', 'owner');
+            expect(res.body.canvases[0]).toHaveProperty('isCollab', false);
+        });
+
+        it('should return isCollab: true when multiple participants exist', async () => {
+            // Add a second participant directly to the database
+            await Canvas.findByIdAndUpdate(canvasId, {
+                $push: { participants: { userId: new mongoose.Types.ObjectId(), role: 'viewer', joinedAt: new Date() } }
+            });
+
+            const res = await request(app)
+                .get('/api/canvas/mine')
+                .set('Authorization', `Bearer ${authToken}`);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.canvases).toHaveLength(1);
+            expect(res.body.canvases[0]).toHaveProperty('isCollab', true);
         });
 
         it('should return 401 without auth', async () => {
