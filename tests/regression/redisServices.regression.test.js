@@ -33,7 +33,9 @@ const mockRedisClient = {
 mockDuplicate.mockReturnValue({ ...mockRedisClient });
 
 jest.unstable_mockModule('../../src/config/redis.js', () => ({
-    default: mockRedisClient,
+    redisClient: mockRedisClient,
+    pubClient: mockRedisClient,
+    subClient: mockRedisClient,
 }));
 
 const mockRoomFindById = jest.fn();
