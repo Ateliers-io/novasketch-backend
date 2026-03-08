@@ -23,7 +23,7 @@ describe('Cross-user access control', () => {
 
         // User A creates a canvas
         const res = await request(app)
-            .post('/api/canvas/create')
+            .post('/api/canvas')
             .set(getAuthHeaders(userA.token))
             .send({ name: 'User A Canvas' });
 
@@ -174,7 +174,7 @@ describe('Injection safety - canvas name', () => {
     it('stores XSS payload in canvas name without executing it (returned as plain string)', async () => {
         const xssName = 'My <script>alert(1)</script>';
         const res = await request(app)
-            .post('/api/canvas/create')
+            .post('/api/canvas')
             .set(getAuthHeaders(token))
             .send({ name: xssName });
 
@@ -191,7 +191,7 @@ describe('Injection safety - canvas name', () => {
     it('rejects canvas names exceeding 100 characters', async () => {
         const longName = 'A'.repeat(101);
         const res = await request(app)
-            .post('/api/canvas/create')
+            .post('/api/canvas')
             .set(getAuthHeaders(token))
             .send({ name: longName });
 
@@ -202,7 +202,7 @@ describe('Injection safety - canvas name', () => {
     it('accepts rename with XSS payload without crashing the server', async () => {
         // Create canvas first
         const createRes = await request(app)
-            .post('/api/canvas/create')
+            .post('/api/canvas')
             .set(getAuthHeaders(token));
         expect(createRes.statusCode).toBe(201);
         const canvasId = createRes.body.canvas._id;
@@ -220,7 +220,7 @@ describe('Injection safety - canvas name', () => {
 
     it('rejects rename with name exceeding 100 characters', async () => {
         const createRes = await request(app)
-            .post('/api/canvas/create')
+            .post('/api/canvas')
             .set(getAuthHeaders(token));
         const canvasId = createRes.body.canvas._id;
 
@@ -236,13 +236,13 @@ describe('Injection safety - canvas name', () => {
 
 describe('Authentication edge cases', () => {
     it('missing Authorization header returns 401', async () => {
-        const res = await request(app).post('/api/canvas/create').send({ name: 'Test' });
+        const res = await request(app).post('/api/canvas').send({ name: 'Test' });
         expect(res.statusCode).toBe(401);
     });
 
     it('empty Bearer token returns 401', async () => {
         const res = await request(app)
-            .post('/api/canvas/create')
+            .post('/api/canvas')
             .set('Authorization', 'Bearer ')
             .send({ name: 'Test' });
         expect(res.statusCode).toBe(401);
@@ -250,7 +250,7 @@ describe('Authentication edge cases', () => {
 
     it('malformed Authorization header (no Bearer prefix) returns 401', async () => {
         const res = await request(app)
-            .post('/api/canvas/create')
+            .post('/api/canvas')
             .set('Authorization', 'Basic dXNlcjpwYXNz')
             .send({ name: 'Test' });
         expect(res.statusCode).toBe(401);
@@ -260,7 +260,7 @@ describe('Authentication edge cases', () => {
         // Manually crafted expired JWT (signing secret mismatch)
         const tamperedJwt = 'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiIxMjMiLCJleHAiOjF9.tampered';
         const res = await request(app)
-            .post('/api/canvas/create')
+            .post('/api/canvas')
             .set('Authorization', `Bearer ${tamperedJwt}`)
             .send({ name: 'Test' });
         expect(res.statusCode).toBe(401);
