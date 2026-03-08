@@ -17,7 +17,6 @@ import { encoding, decoding } from 'lib0';
 
 /**
  * Connect a WebSocket client to a test server room.
- *
  * All received messages are stored in ws._msgQueue (a Buffer[]) so that
  * waitForMessage() can replay already-received messages and never miss a
  * message that arrived before a handler was registered.
@@ -61,7 +60,7 @@ export const createWSClient = (serverUrl, roomId, meta = {}) => {
                 }
             }
 
-            // No pending waiter matched — buffer the message
+            // No pending waiter matched, buffer the message
             ws._msgQueue.push(buf);
         });
 
@@ -96,7 +95,7 @@ export const waitForMessage = (ws, typeFilter = null, timeoutMs = 3000) => {
         }
     }
 
-    // Not in queue — register a waiter for future messages
+    // Not in queue, register a waiter for future messages
     return new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
             const idx = ws._msgWaiters.findIndex(w => w.resolve === resolve);
@@ -157,7 +156,7 @@ export const collectMessages = (ws, typeFilter, windowMs = 400) => {
 /**
  * Send a Yjs binary update as a type-0 sync message.
  * @param {WebSocket} ws
- * @param {Uint8Array} update – Y.encodeStateAsUpdate() output
+ * @param {Uint8Array} update - Y.encodeStateAsUpdate() output
  */
 export const sendYjsUpdate = (ws, update) => {
     const encoder = encoding.createEncoder();
