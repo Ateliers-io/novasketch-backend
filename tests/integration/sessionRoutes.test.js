@@ -185,4 +185,61 @@ describe('Canvas Routes Integration', () => {
             expect(res.statusCode).toBe(401);
         });
     });
+
+    describe('POST /api/canvas/:id/join', () => {
+        it('should return success and not modify membership when the owner joins', async () => {
+            const res = await request(app)
+                .post(`/api/canvas/${canvasId}/join`)
+                .set('Authorization', `Bearer ${authToken}`);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.message).toBe('Joined as owner');
+
+            // Check canvas participants did not increase
+            const canvas = await Canvas.findById(canvasId);
+            expect(canvas.participants).toHaveLength(1);
+        });
+
+        it('should add a guest to CanvasMembership, participants array, and User canvases', async () => {
+            // Create a guest user
+            const guestUser = await User.create({
+                email: 'guest@example.com',
+                displayName: 'Guest User',
+                authProvider: 'local',
+                password: 'TestPass123!',
+            });
+            const guestToken = jwt.sign(
+                { userId: guestUser._id, email: guestUser.email },
+                process.env.JWT_SECRET,
+                { expiresIn: '1h' }
+            );
+
+            const res = await request(app)
+                .post(`/api/canvas/${canvasId}/join`)
+                .set('Authorization', `Bearer ${guestToken}`);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.message).toBe('Joined canvas successfully');
+
+            // 1. Verify Canvas.participants was updated
+            const canvas = await Canvas.findById(canvasId);
+            expect(canvas.participants).toHaveLength(2);
+            expect(canvas.participants[1].userId.toString()).toBe(guestUser._id.toString());
+            expect(canvas.participants[1].role).toBe('editor');
+
+            // 2. Verify User.canvases was updated
+            const updatedGuest = await User.findById(guestUser._id);
+            expect(updatedGuest.canvases).toHaveLength(1);
+            expect(updatedGuest.canvases[0].canvasId).toBe(canvasId);
+            expect(updatedGuest.canvases[0].role).toBe('editor');
+        });
+
+        it('should return 404 if the canvas does not exist', async () => {
+            const res = await request(app)
+                .post(`/api/canvas/${new mongoose.Types.ObjectId()}/join`)
+                .set('Authorization', `Bearer ${authToken}`);
+
+            expect(res.statusCode).toBe(404);
+        });
+    });
 });
