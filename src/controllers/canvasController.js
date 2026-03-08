@@ -60,7 +60,7 @@ export const getUserCanvases = async (req, res) => {
         const canvasIds = user.canvases.map((c) => c.canvasId);
         const canvases = await Canvas.find({ _id: { $in: canvasIds } })
             .populate("owner", "displayName avatar")
-            .select("name owner is_locked lastEditedAt createdAt")
+            .select("name owner is_locked lastEditedAt createdAt participants")
             .sort({ lastEditedAt: -1 });
 
         // Merge role from user's canvases array
@@ -74,6 +74,7 @@ export const getUserCanvases = async (req, res) => {
                 owner: canvas.owner,
                 role: userRef?.role || "editor",
                 is_locked: canvas.is_locked,
+                isCollab: canvas.participants && canvas.participants.length > 1,
                 lastEditedAt: canvas.lastEditedAt,
                 lastAccessedAt: userRef?.lastAccessedAt,
                 createdAt: canvas.createdAt,
