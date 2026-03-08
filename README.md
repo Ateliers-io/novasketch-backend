@@ -161,8 +161,11 @@ pnpm start
 | `POST` | `/api/canvas` | Create a new canvas |
 | `GET` | `/api/canvas/mine` | List all canvases for the authenticated user |
 | `GET` | `/api/canvas/{id}` | Get canvas details by ID |
+| `DELETE` | `/api/canvas/{id}` | Delete a canvas |
+| `PATCH` | `/api/canvas/{id}/name` | Update a canvas name |
 | `PATCH` | `/api/canvas/{id}/lock` | Lock or unlock a canvas |
 | `POST` | `/api/canvas/{id}/participants` | Add a participant to a canvas |
+| `POST` | `/api/canvas/{id}/join` | Auto-join a canvas when opening a shared link |
 
 #### Health
 
