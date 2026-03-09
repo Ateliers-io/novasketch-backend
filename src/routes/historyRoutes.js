@@ -1,7 +1,7 @@
-// historyRoutes.js — REST endpoints for timeline replay snapshots.
+// historyRoutes.js: REST endpoints for timeline replay snapshots.
 //
-// GET  /api/history/:sessionId  → returns all snapshots (base64 encoded) sorted by time
-// DELETE /api/history/:sessionId → clears all snapshots for a session
+// GET  /api/history/:sessionId  -> returns all snapshots (base64 encoded) sorted by time
+// DELETE /api/history/:sessionId -> clears all snapshots for a session
 
 import { Router } from 'express';
 import History from '../models/History.js';
@@ -20,10 +20,11 @@ router.get('/:sessionId', async (req, res) => {
             .sort({ timestamp: 1 })
             .lean();
 
-        // Convert Buffer to base64 for JSON transport
+        // Convert Buffer to base64 for JSON transport; include awareness cursor data
         const result = snapshots.map(s => ({
             _id: s._id,
             update: s.update.toString('base64'),
+            awareness: s.awareness || [],
             timestamp: s.timestamp,
         }));
 
