@@ -64,13 +64,27 @@ novasketch-backend/
 ├── tests/
 │   ├── integration/
 │   │   ├── authRoutes.test.js
-│   │   ├── sessionRoutes.test.js
+│   │   ├── canvasRoutes.test.js
+│   │   ├── healthRoutes.test.js
 │   │   └── shapeRoutes.test.js
+│   ├── regression/
+│   │   ├── auth.regression.test.js
+│   │   ├── canvas.regression.test.js
+│   │   ├── models.regression.test.js
+│   │   ├── redisServices.regression.test.js
+│   │   ├── security.regression.test.js
+│   │   ├── sessionLock.regression.test.js
+│   │   ├── shapes.regression.test.js
+│   │   ├── validation.regression.test.js
+│   │   └── websocket.regression.test.js
 │   ├── unit/
 │   │   ├── .gitkeep
 │   │   ├── authController.test.js
 │   │   ├── authMiddleware.test.js
 │   │   ├── authRouteGuard.test.js
+│   │   ├── Canvas.test.js
+│   │   ├── canvasController.test.js
+│   │   ├── canvasMembership.test.js
 │   │   ├── checkSessionLock.test.js
 │   │   ├── concurrentEditing.test.js
 │   │   ├── networkOptimization.test.js
@@ -79,9 +93,12 @@ novasketch-backend/
 │   │   ├── redisCanvasService.test.js
 │   │   ├── redisPersistenceService.test.js
 │   │   ├── Room.test.js
-│   │   └── User.test.js
+│   │   ├── User.test.js
+│   │   └── validation.test.js
 │   ├── utils/
-│   │   └── db_handler.js
+│   │   ├── auth_helper.js
+│   │   ├── db_handler.js
+│   │   └── ws_helper.js
 │   └── setup.js
 ├── .env.example
 ├── .gitignore
