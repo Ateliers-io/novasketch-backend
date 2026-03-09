@@ -31,6 +31,7 @@ await connectDB();
 import Room from "./src/models/Room.js";
 import Canvas from "./src/models/Canvas.js";
 import app from "./src/app.js";
+import History from "./src/models/History.js";
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
@@ -199,10 +200,34 @@ const getOrCreateRoom = async (roomId) => {
     }, 2000);
   };
 
+  // ---- Timeline History Snapshots ----
+  // Debounced snapshot writer for replay. Captures the full Yjs state
+  // every 5 seconds during active editing. Separate timer from the
+  // Room persistence save so they don't interfere with each other.
+  let historyTimer = null;
+  const saveSnapshot = () => {
+    if (historyTimer) clearTimeout(historyTimer);
+    historyTimer = setTimeout(async () => {
+      try {
+        const snapshot = Y.encodeStateAsUpdate(doc);
+        const awarenessStates = Array.from(doc.awareness.getStates().values());
+        await History.create({
+          sessionId: roomId,
+          update: Buffer.from(snapshot),
+          awareness: awarenessStates,
+        });
+        console.log(`[History] Snapshot saved for ${roomId} (${snapshot.byteLength} bytes)`);
+      } catch (e) {
+        console.error(`[History] Snapshot save error for ${roomId}:`, e.message);
+      }
+    }, 5000);
+  };
+
   // Triggered on every Yjs mutation (persists + broadcasts the change).
   // 'origin' is the WS that sent the update.
   doc.on('update', (update, origin) => {
     saveToDB();
+    saveSnapshot();
 
     // Cache individual shapes to Redis for fast retrieval
     try {
