@@ -3,6 +3,7 @@
 // All Redis interactions are mocked.
 
 import { jest } from '@jest/globals';
+import crypto from 'node:crypto';
 
 // -------------------
 // Mock ioredis client
@@ -261,7 +262,7 @@ describe('redisPersistenceService', () => {
             jest.useFakeTimers();
             jest.clearAllMocks();
 
-            const testCanvasId = `canvas-interval-${Math.random().toString(36).slice(2)}`;
+            const testCanvasId = `canvas-interval-${crypto.randomUUID()}`;
             markDirty(testCanvasId);
             mockHgetall.mockResolvedValue({}); // Empty → skip DB writes
 
