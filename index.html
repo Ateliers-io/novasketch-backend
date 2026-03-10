@@ -22,8 +22,8 @@
         const statusDiv = document.getElementById('status');
 
         // 1. Resize Canvas
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        canvas.width = globalThis.innerWidth;
+        canvas.height = globalThis.innerHeight;
 
         // 2. Connect to YOUR Backend
         const doc = new Y.Doc();
@@ -84,7 +84,7 @@
             
             // Push the finished stroke to the Server (Y.js)
             if (currentPath.length > 2) {
-                const cryptoObj = window.crypto || window.msCrypto;
+                const cryptoObj = globalThis.crypto || globalThis.msCrypto;
                 const array = new Uint32Array(1);
                 cryptoObj.getRandomValues(array);
                 

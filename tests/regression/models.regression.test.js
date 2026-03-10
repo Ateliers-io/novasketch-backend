@@ -1,6 +1,5 @@
 // models.regression.test.js: Regression tests for all Mongoose models.
 
-import mongoose from 'mongoose';
 import * as Y from 'yjs';
 import crypto from 'node:crypto';
 import User from '../../src/models/User.js';

@@ -53,7 +53,7 @@ router.get('/:roomId/shapes', async (req, res) => {
     try {
         const room = await Room.findById(roomId);
 
-        if (!room || !room.data) {
+        if (!room?.data) {
             return res.status(404).json({
                 error: 'Room not found',
                 roomId
@@ -128,7 +128,7 @@ router.get('/:roomId/shape/:shapeId', async (req, res) => {
     try {
         const room = await Room.findById(roomId);
 
-        if (!room || !room.data) {
+        if (!room?.data) {
             return res.status(404).json({ error: 'Room not found' });
         }
 

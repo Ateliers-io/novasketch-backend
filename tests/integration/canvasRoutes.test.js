@@ -4,7 +4,6 @@
 // Canvas creation requires auth, so we generate a JWT for tests.
 // GET /:id does not require auth.
 
-import { jest } from '@jest/globals';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import crypto from 'node:crypto';

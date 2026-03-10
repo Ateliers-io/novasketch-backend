@@ -1,7 +1,6 @@
 
 import { jest } from '@jest/globals';
 import request from 'supertest';
-import mongoose from 'mongoose';
 import { connect, closeDatabase, clearDatabase } from '../utils/db_handler.js';
 import User from '../../src/models/User.js';
 
