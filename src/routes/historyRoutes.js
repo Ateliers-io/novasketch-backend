@@ -20,13 +20,20 @@ router.get('/:sessionId', async (req, res) => {
             .sort({ timestamp: 1 })
             .lean();
 
-        // Convert Buffer to base64 for JSON transport; include awareness cursor data
-        const result = snapshots.map(s => ({
-            _id: s._id,
-            update: s.update.toString('base64'),
-            awareness: s.awareness || [],
-            timestamp: s.timestamp,
-        }));
+        // Convert Buffer/Binary to base64 for JSON transport; include awareness cursor data.
+        // With newer MongoDB drivers, .lean() may return BSON Binary objects
+        // instead of Node.js Buffers, so we normalise before encoding.
+        const result = snapshots.map(s => {
+            const buf = s.update instanceof Buffer
+                ? s.update
+                : Buffer.from(s.update.buffer || s.update);
+            return {
+                _id: s._id,
+                update: buf.toString('base64'),
+                awareness: s.awareness || [],
+                timestamp: s.timestamp,
+            };
+        });
 
         res.json(result);
     } catch (err) {

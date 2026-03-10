@@ -210,7 +210,13 @@ const getOrCreateRoom = async (roomId) => {
     historyTimer = setTimeout(async () => {
       try {
         const snapshot = Y.encodeStateAsUpdate(doc);
-        const awarenessStates = Array.from(doc.awareness.getStates().values());
+        if (!snapshot || snapshot.byteLength === 0) {
+          console.warn(`[History] Empty snapshot for ${roomId}, skipping`);
+          return;
+        }
+        const awarenessStates = doc.awareness
+          ? Array.from(doc.awareness.getStates().values())
+          : [];
         await History.create({
           sessionId: roomId,
           update: Buffer.from(snapshot),
@@ -218,7 +224,7 @@ const getOrCreateRoom = async (roomId) => {
         });
         console.log(`[History] Snapshot saved for ${roomId} (${snapshot.byteLength} bytes)`);
       } catch (e) {
-        console.error(`[History] Snapshot save error for ${roomId}:`, e.message);
+        console.error(`[History] Snapshot save error for ${roomId}:`, e);
       }
     }, 5000);
   };
