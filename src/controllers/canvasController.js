@@ -270,11 +270,11 @@ export const joinCanvas = async (req, res) => {
         const user = await User.findById(userId);
         if (user) {
             const hasCanvas = user.canvases.some(c => c.canvasId === String(id));
-            if (!hasCanvas) {
-                user.canvases.push({ canvasId: String(id), role: "editor", lastAccessedAt: new Date() });
-            } else {
+            if (hasCanvas) {
                 const canvasRef = user.canvases.find(c => c.canvasId === String(id));
                 if (canvasRef) canvasRef.lastAccessedAt = new Date();
+            } else {
+                user.canvases.push({ canvasId: String(id), role: "editor", lastAccessedAt: new Date() });
             }
             await user.save();
         }

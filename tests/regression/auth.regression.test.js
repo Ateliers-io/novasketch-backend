@@ -128,7 +128,7 @@ describe('Step 4 — Registration edge cases', () => {
     });
 
     it('returns 400 when email is missing', async () => {
-        const { email: _e, ...body } = VALID;
+        const { email, ...body } = VALID;
         const res = await request(app).post('/api/auth/register').send(body);
         expect(res.statusCode).toBe(400);
     });

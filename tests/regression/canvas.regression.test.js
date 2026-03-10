@@ -6,7 +6,6 @@
 
 import { jest } from '@jest/globals';
 import request from 'supertest';
-import jwt from 'jsonwebtoken';
 import crypto from 'node:crypto';
 import mongoose from 'mongoose';
 import { connect, closeDatabase, clearDatabase } from '../utils/db_handler.js';
@@ -85,7 +84,6 @@ describe('Step 8 - Canvas creation', () => {
             .send({ name: 'Membership Board' });
         const canvasId = res.body.canvasId;
 
-        const membership = await CanvasMembership.findOne({ canvasId, userId });
         // Note: controller creates Canvas.participants but addParticipant is a
         // separate endpoint; createCanvas does NOT write to CanvasMembership.
         // Verify at least the Canvas.participants array
