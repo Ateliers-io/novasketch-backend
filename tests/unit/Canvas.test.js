@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import Canvas from '../../src/models/Canvas.js';
-import User from '../../src/models/User.js';
 import { connect, closeDatabase, clearDatabase } from '../utils/db_handler.js';
 
 beforeAll(async () => await connect());

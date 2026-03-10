@@ -100,7 +100,8 @@ export const waitForMessage = (ws, typeFilter = null, timeoutMs = 3000) => {
         const timer = setTimeout(() => {
             const idx = ws._msgWaiters.findIndex(w => w.resolve === resolve);
             if (idx !== -1) ws._msgWaiters.splice(idx, 1);
-            reject(new Error(`WS message timeout${typeFilter !== null ? ` (type ${typeFilter})` : ''}`));
+            const typeMsg = typeFilter !== null ? ` (type ${typeFilter})` : '';
+            reject(new Error(`WS message timeout${typeMsg}`));
         }, timeoutMs);
 
         ws._msgWaiters.push({ typeFilter, resolve, reject, timer });

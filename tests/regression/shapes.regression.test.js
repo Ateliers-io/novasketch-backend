@@ -42,7 +42,6 @@ describe('GET /api/rooms/:roomId/shapes', () => {
         // Save a Room without binary data (simulate corrupt record)
         const roomId = crypto.randomUUID();
         // Override validation: set data to undefined via direct save
-        const room = new Room({ _id: roomId, data: undefined });
         // Room.data has no required constraint, but route checks !room.data
         await Room.collection.insertOne({ _id: roomId });
 
