@@ -23,9 +23,9 @@ const sanitizeDisplayName = (name) => {
     let sanitized = name
         .trim()
         .normalize('NFKD')
-        .replace(/[\u0300-\u036f]/g, '')   // strip accents
-        .replace(/[^a-zA-Z0-9\s\-_]/g, '') // remove unsupported chars (dots, etc.)
-        .replace(/\s+/g, ' ')              // collapse whitespace
+        .replaceAll(/[\u0300-\u036f]/g, '')   // strip accents
+        .replaceAll(/[^a-zA-Z0-9\s\-_]/g, '') // remove unsupported chars (dots, etc.)
+        .replaceAll(/\s+/g, ' ')              // collapse whitespace
         .trim();
     // Ensure it starts with a letter
     const match = /[a-zA-Z]/.exec(sanitized);
