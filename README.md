@@ -48,12 +48,14 @@ novasketch-backend/
 │   ├── models/
 │   │   ├── Canvas.js
 │   │   ├── canvasMembership.js
+│   │   ├── History.js
 │   │   ├── Room.js
 │   │   └── User.js
 │   ├── routes/
 │   │   ├── authRoutes.js
 │   │   ├── canvasRoutes.js
 │   │   ├── health.js
+│   │   ├── historyRoutes.js
 │   │   └── shapeRoutes.js
 │   ├── services/
 │   │   ├── redisCanvasService.js
@@ -102,6 +104,7 @@ novasketch-backend/
 │   └── setup.js
 ├── .env.example
 ├── .gitignore
+├── check-db.js
 ├── eslint.config.js
 ├── index.html
 ├── instrument.mjs
