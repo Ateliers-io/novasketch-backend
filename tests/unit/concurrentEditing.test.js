@@ -7,9 +7,8 @@
  * - 3.3.3: Unique ID validation for object identification
  */
 
-import { jest, describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect } from '@jest/globals';
 import * as Y from 'yjs';
-import * as syncProtocol from 'y-protocols/sync';
 import { encoding, decoding } from 'lib0';
 import { validatePropertyUpdate } from '../../src/utils/validation.js';
 

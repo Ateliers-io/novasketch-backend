@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import Room from '../../src/models/Room.js';
 import { connect, closeDatabase, clearDatabase } from '../utils/db_handler.js';
 import * as Y from 'yjs';

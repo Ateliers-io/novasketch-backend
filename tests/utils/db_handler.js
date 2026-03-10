@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 // Each Jest worker gets a fresh module registry, so this UUID is generated
 // once per test file, giving every parallel suite its own isolated database.
 // Parallel suites can therefore never read or stomp each other's data.
-const DB_ID = crypto.randomUUID().replaceAll(/-/g, '').slice(0, 12);
+const DB_ID = crypto.randomUUID().replaceAll('-', '').slice(0, 12);
 
 // Build a unique connection URI for this test-file worker.
 const getTestUri = () => {

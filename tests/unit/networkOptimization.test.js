@@ -12,7 +12,7 @@
  * - Ephemeral message broadcasting (Type 2)
  */
 
-import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect } from '@jest/globals';
 import * as Y from 'yjs';
 import { encoding, decoding } from 'lib0';
 
@@ -268,7 +268,6 @@ describe('User Story 3.4: Network Optimization', () => {
         describe('Debounced Persistence', () => {
             it('should debounce multiple rapid updates into single save', async () => {
                 let saveCount = 0;
-                let lastSaveTime = 0;
 
                 // Simulate debounced save function
                 const DEBOUNCE_MS = 100; // Using shorter time for testing
@@ -278,7 +277,6 @@ describe('User Story 3.4: Network Optimization', () => {
                     if (saveTimer) clearTimeout(saveTimer);
                     saveTimer = setTimeout(() => {
                         saveCount++;
-                        lastSaveTime = Date.now();
                     }, DEBOUNCE_MS);
                 };
 

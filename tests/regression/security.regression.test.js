@@ -1,7 +1,6 @@
 // security.regression.test.js: Regression tests for cross-user access control and injection safety.
 
 import request from 'supertest';
-import crypto from 'node:crypto';
 import app from '../../src/app.js';
 import { connect, clearDatabase, closeDatabase } from '../utils/db_handler.js';
 import { registerAndLogin, getAuthHeaders } from '../utils/auth_helper.js';

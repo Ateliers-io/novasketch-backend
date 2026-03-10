@@ -111,12 +111,12 @@ describe('User Stories 1.3.3, 1.4.1, 1.4.2: Presence Events', () => {
                 const ws = { meta: { name, clientId: `id-${i}` } };
                 clients.add(ws);
 
-                const payload = JSON.parse(JSON.stringify({
+                const payload = structuredClone({
                     event: 'user_joined',
                     name: ws.meta.name,
                     clientId: ws.meta.clientId,
                     count: clients.size,
-                }));
+                });
 
                 expect(payload.count).toBe(i + 1);
             });
@@ -138,12 +138,12 @@ describe('User Stories 1.3.3, 1.4.1, 1.4.2: Presence Events', () => {
             // Bob leaves
             clients.delete(ws2);
 
-            const payload = JSON.parse(JSON.stringify({
+            const payload = structuredClone({
                 event: 'user_left',
                 name: ws2.meta.name,
                 clientId: ws2.meta.clientId,
                 count: clients.size,
-            }));
+            });
 
             expect(payload.event).toBe('user_left');
             expect(payload.name).toBe('Bob');
@@ -157,12 +157,12 @@ describe('User Stories 1.3.3, 1.4.1, 1.4.2: Presence Events', () => {
             clients.add(ws);
             clients.delete(ws);
 
-            const payload = JSON.parse(JSON.stringify({
+            const payload = structuredClone({
                 event: 'user_left',
                 name: ws.meta.name,
                 clientId: ws.meta.clientId,
                 count: clients.size,
-            }));
+            });
 
             expect(payload.count).toBe(0);
         });
@@ -184,11 +184,11 @@ describe('User Stories 1.3.3, 1.4.1, 1.4.2: Presence Events', () => {
                 clientId: c.meta.clientId,
             }));
 
-            const payload = JSON.parse(JSON.stringify({
+            const payload = structuredClone({
                 event: 'room_state',
                 members,
                 count: members.length,
-            }));
+            });
 
             expect(payload.event).toBe('room_state');
             expect(payload.count).toBe(2);
