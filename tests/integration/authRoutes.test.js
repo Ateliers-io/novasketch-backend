@@ -89,7 +89,7 @@ describe('Auth Routes Integration Verification', () => {
                     password: 'weak'
                 });
 
-            expect(res.statusCode).toBe(400); // Expect validation error
+            expect(res.statusCode).toBe(400); // Expect validation error handling
             expect(res.body.error).toBeTruthy();
         });
     });
