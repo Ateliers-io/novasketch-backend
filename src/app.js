@@ -44,8 +44,15 @@ app.use(helmet({
 }));
 
 // CORS - strict configuration
+const allowedOrigins = [
+    'http://localhost:5173',
+    'https://novasketch.vercel.app',
+];
+if (process.env.FRONTEND_URL && !allowedOrigins.includes(process.env.FRONTEND_URL)) {
+    allowedOrigins.push(process.env.FRONTEND_URL);
+}
 const corsOptions = {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: allowedOrigins,
     credentials: true,
     optionsSuccessStatus: 200,
 };
