@@ -7,6 +7,7 @@
 import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
 import User, { EMAIL_REGEX, DISPLAY_NAME_REGEX, PASSWORD_REGEX } from "../models/User.js";
+import bcrypt from "bcrypt";
 
 const client = new OAuth2Client(
     process.env.GOOGLE_CLIENT_ID,
@@ -246,5 +247,80 @@ export const getMe = async (req, res) => {
         res.json(user);
     } catch {
         res.status(500).json({ error: "Server error" });
+    }
+};
+
+// ─── update profile ───
+
+export const updateProfile = async (req, res) => {
+    const { displayName, avatar, currentPassword, newPassword } = req.body;
+
+    try {
+        const user = await User.findById(req.userId).select("+password");
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Update display name if provided
+        if (displayName !== undefined) {
+            if (!DISPLAY_NAME_REGEX.test(displayName)) {
+                return res.status(400).json({
+                    error: "Display name must be 2-30 characters, start with a letter, and contain only letters, numbers, spaces, hyphens, or underscores",
+                    field: "displayName",
+                });
+            }
+            user.displayName = displayName.trim();
+        }
+
+        // Update avatar URL if provided
+        if (avatar !== undefined) {
+            user.avatar = avatar;
+        }
+
+        // Change password (only for local accounts)
+        if (newPassword !== undefined) {
+            if (user.authProvider !== "local") {
+                return res.status(400).json({
+                    error: "Password cannot be changed for Google accounts",
+                    field: "newPassword",
+                });
+            }
+            if (!currentPassword) {
+                return res.status(400).json({ error: "Current password is required to set a new password", field: "currentPassword" });
+            }
+            const isMatch = await user.comparePassword(String(currentPassword));
+            if (!isMatch) {
+                return res.status(401).json({ error: "Current password is incorrect", field: "currentPassword" });
+            }
+            if (!PASSWORD_REGEX.test(newPassword)) {
+                return res.status(400).json({
+                    error: "New password must be 8-64 characters with at least 1 uppercase, 1 lowercase, 1 digit, and 1 special character",
+                    field: "newPassword",
+                });
+            }
+            const salt = await bcrypt.genSalt(12);
+            user.password = await bcrypt.hash(newPassword, salt);
+        }
+
+        await user.save({ validateBeforeSave: false });
+        res.json({ user: sanitizeUser(user) });
+    } catch (err) {
+        console.error("UpdateProfile Error:", err);
+        res.status(500).json({ error: "Profile update failed. Please try again." });
+    }
+};
+
+// ─── delete account ───
+
+export const deleteAccount = async (req, res) => {
+    try {
+        const user = await User.findByIdAndDelete(req.userId);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        res.json({ message: "Account deleted successfully" });
+    } catch (err) {
+        console.error("DeleteAccount Error:", err);
+        res.status(500).json({ error: "Account deletion failed. Please try again." });
     }
 };
