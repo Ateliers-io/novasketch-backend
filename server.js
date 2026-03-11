@@ -201,32 +201,49 @@ const getOrCreateRoom = async (roomId) => {
   };
 
   // ---- Timeline History Snapshots ----
-  // Debounced snapshot writer for replay. Captures the full Yjs state
-  // every 5 seconds during active editing. Separate timer from the
-  // Room persistence save so they don't interfere with each other.
+  // Throttle+debounce snapshot writer for replay. During continuous
+  // editing the pure debounce never fires because each stroke resets
+  // the timer. We now save immediately when ≥HISTORY_THROTTLE_MS has
+  // elapsed since the last save (throttle), and still debounce at 5s
+  // to catch the final state after editing stops.
+  const HISTORY_THROTTLE_MS = 10_000; // save at least every 10s during active editing
+  const HISTORY_DEBOUNCE_MS = 5_000;  // save 5s after last edit (trailing edge)
   let historyTimer = null;
-  const saveSnapshot = () => {
-    if (historyTimer) clearTimeout(historyTimer);
-    historyTimer = setTimeout(async () => {
-      try {
-        const snapshot = Y.encodeStateAsUpdate(doc);
-        if (!snapshot || snapshot.byteLength === 0) {
-          console.warn(`[History] Empty snapshot for ${roomId}, skipping`);
-          return;
-        }
-        const awarenessStates = doc.awareness
-          ? Array.from(doc.awareness.getStates().values())
-          : [];
-        await History.create({
-          sessionId: roomId,
-          update: Buffer.from(snapshot),
-          awareness: awarenessStates,
-        });
-        console.log(`[History] Snapshot saved for ${roomId} (${snapshot.byteLength} bytes)`);
-      } catch (e) {
-        console.error(`[History] Snapshot save error for ${roomId}:`, e);
+  let lastSnapshotTime = 0;
+
+  const doSaveSnapshot = async () => {
+    if (historyTimer) { clearTimeout(historyTimer); historyTimer = null; }
+    try {
+      const snapshot = Y.encodeStateAsUpdate(doc);
+      if (!snapshot || snapshot.byteLength === 0) {
+        console.warn(`[History] Empty snapshot for ${roomId}, skipping`);
+        return;
       }
-    }, 5000);
+      const awarenessStates = doc.awareness
+        ? Array.from(doc.awareness.getStates().values())
+        : [];
+      await History.create({
+        sessionId: roomId,
+        update: Buffer.from(snapshot),
+        awareness: awarenessStates,
+      });
+      lastSnapshotTime = Date.now();
+      console.log(`[History] Snapshot saved for ${roomId} (${snapshot.byteLength} bytes)`);
+    } catch (e) {
+      console.error(`[History] Snapshot save error for ${roomId}:`, e);
+    }
+  };
+
+  const saveSnapshot = () => {
+    const now = Date.now();
+    // Throttle: if enough time has passed, save immediately
+    if (now - lastSnapshotTime >= HISTORY_THROTTLE_MS) {
+      doSaveSnapshot();
+      return;
+    }
+    // Debounce: reset trailing-edge timer
+    if (historyTimer) clearTimeout(historyTimer);
+    historyTimer = setTimeout(doSaveSnapshot, HISTORY_DEBOUNCE_MS);
   };
 
   // Triggered on every Yjs mutation (persists + broadcasts the change).
@@ -237,13 +254,16 @@ const getOrCreateRoom = async (roomId) => {
 
     // Cache individual shapes to Redis for fast retrieval
     try {
-      const shapesMap = doc.getMap('shapes');
-      for (const [shapeId, shapeData] of shapesMap.entries()) {
-        saveShape(roomId, shapeId, shapeData).catch(err =>
-          console.error(`[Redis] Shape cache error for ${shapeId}:`, err.message)
-        );
+      const shapesArr = doc.getArray('shapes');
+      for (const shapeData of shapesArr.toArray()) {
+        const shapeId = shapeData?.id;
+        if (shapeId) {
+          saveShape(roomId, shapeId, shapeData).catch(err =>
+            console.error(`[Redis] Shape cache error for ${shapeId}:`, err.message)
+          );
+        }
       }
-    } catch { /* shapes map may not exist yet */ }
+    } catch { /* shapes array may not exist yet */ }
 
     // Broadcast to clients
     if (origin !== null) { // origin null means loaded from DB
