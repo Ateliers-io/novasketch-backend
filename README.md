@@ -173,6 +173,8 @@ pnpm start
 | `POST` | `/api/auth/login` | Login with email and password |
 | `POST` | `/api/auth/google` | Authenticate via Google OAuth |
 | `GET` | `/api/auth/me` | Get current user profile |
+| `PATCH` | `/api/auth/profile` | Update current user's profile |
+| `DELETE` | `/api/auth/account` | Delete current user's account |
 
 #### Canvas
 
