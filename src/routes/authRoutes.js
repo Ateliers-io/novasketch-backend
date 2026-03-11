@@ -4,7 +4,7 @@
 // GET  /api/auth/me     - Protected. Returns the logged-in user's profile.
 
 import { Router } from "express";
-import { googleAuth, getMe, register, login } from "../controllers/authController.js";
+import { googleAuth, getMe, register, login, updateProfile, deleteAccount } from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = Router();
@@ -172,5 +172,54 @@ router.post("/google", googleAuth);
  *         description: User not found
  */
 router.get("/me", protect, getMe);
+
+/**
+ * @swagger
+ * /api/auth/profile:
+ *   patch:
+ *     summary: Update current user's profile
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               displayName:
+ *                 type: string
+ *               avatar:
+ *                 type: string
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Profile updated
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Not authorized
+ */
+router.patch("/profile", protect, updateProfile);
+
+/**
+ * @swagger
+ * /api/auth/account:
+ *   delete:
+ *     summary: Delete current user's account
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Account deleted
+ *       401:
+ *         description: Not authorized
+ */
+router.delete("/account", protect, deleteAccount);
 
 export default router;
